@@ -1,0 +1,140 @@
+# InfoPipeline - Configuration
+# Copy this file to config.yaml and fill in your values.
+
+# LLM Configuration (for analysis and summarization)
+llm:
+  base_url: "http://127.0.0.1:8082/v1"  # Your API proxy (e.g. new-api)
+  api_key: "sk-your-key"
+  model: "gpt-4o-mini"                  # Default model for analysis
+  max_tokens: 4096
+  timeout_seconds: 60
+
+# Data storage
+storage:
+  db_path: "./data/pipeline.db"
+  output_dir: "./output"
+  retain_days: 90  # How long to keep historical data
+
+# Collectors - each data source
+collectors:
+  reddit:
+    enabled: true
+    subreddits:
+      - "MachineLearning"
+      - "artificial"
+      - "LocalLLaMA"
+      - "technology"
+    limit: 50
+    # Uses opencli under the hood
+
+  hackernews:
+    enabled: true
+    limit: 50
+    # Uses opencli
+
+  twitter:
+    enabled: false
+    accounts: []       # Twitter accounts to follow
+    keywords: []       # Keywords to search
+    limit: 30
+    # Uses opencli
+
+  bilibili:
+    enabled: false
+    keywords: []
+    limit: 30
+    # Uses opencli
+
+  zhihu:
+    enabled: false
+    keywords: []
+    limit: 30
+    # Uses opencli
+
+  weibo:
+    enabled: false
+    keywords: []
+    limit: 30
+    # Uses opencli
+
+  rss:
+    enabled: true
+    feeds:
+      - name: "Ars Technica"
+        url: "https://feeds.arstechnica.com/arstechnica/index"
+      - name: "Hacker News"
+        url: "https://hnrss.org/newest"
+      - name: "TechCrunch"
+        url: "https://techcrunch.com/feed/"
+      # Add more feeds as needed
+
+  github_trending:
+    enabled: true
+    languages: ["python", "typescript", "rust"]
+    since: "daily"  # daily / weekly / monthly
+
+  indie_games:
+    enabled: true
+    sources:
+      - type: "reddit"
+        subreddits:
+          - "indiegaming"
+          - "gamedev"
+      - type: "rss"
+        url: "https://itch.io/feeds/newest-games"
+    limit: 30
+
+# Processor - LLM analysis settings
+processor:
+  # Minimum score to include in report (0-10)
+  min_score: 3
+  # How many items per category to include
+  max_items_per_category: 20
+  # Batch size for LLM analysis
+  batch_size: 10
+  # Categories to classify into
+  categories:
+    - "AI / 机器学习"
+    - "编程 / 开发"
+    - "安全"
+    - "游戏"
+    - "硬件"
+    - "科技新闻"
+    - "产品"
+    - "其他"
+
+# Distributors - where to push reports
+distributors:
+  discord:
+    enabled: true
+    webhook_url: "https://discord.com/api/webhooks/YOUR_WEBHOOK"
+    channel_id: ""  # Optional, for thread replies
+
+  feishu:
+    enabled: false
+    webhook_url: ""
+
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+  # OpenClaw webhook (for notification after pipeline run)
+  openclaw:
+    enabled: false
+    gateway_url: ""
+    gateway_token: ""
+
+# Web UI settings
+web:
+  enabled: true
+  port: 3456
+  host: "127.0.0.1"
+
+# Scheduling (reference - actual scheduling via system crontab)
+schedule:
+  # Each collector can have its own frequency
+  hot_sources: "*/2h"      # Reddit, HN, Twitter - every 2 hours
+  warm_sources: "0 */6h"    # Bilibili, Zhihu, Weibo - every 6 hours
+  cold_sources: "0 8,20 * *" # RSS, GitHub trending - twice daily
+  report: "0 9,21 * *"       # Generate and push report - twice daily
