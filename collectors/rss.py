@@ -57,7 +57,5 @@ class RSSCollector:
             return 0
 
     def _insert(self, **kwargs) -> bool:
-        from collectors.base import BaseCollector
-        return BaseCollector.__new__(BaseCollector)._insert(
-            source=self.name, **kwargs
-        )
+        from lib.db import insert_item
+        return insert_item(source=self.name, **kwargs)
