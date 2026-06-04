@@ -18,13 +18,20 @@ class PipelineHandler(SimpleHTTPRequestHandler):
     web_dir = str(Path(__file__).parent / "web")
 
     def do_GET(self):
-        parsed = urlparse(self.path)
+        try:
+            parsed = urlparse(self.path)
 
-        if parsed.path.startswith("/api/"):
-            self._handle_api(parsed.path, parsed.query)
-        else:
-            # Serve static files from web/
-            super().do_GET()
+            if parsed.path.startswith("/api/"):
+                self._handle_api(parsed.path, parsed.query)
+            else:
+                super().do_GET()
+        except ConnectionResetError:
+            pass
+        except Exception as e:
+            try:
+                self.send_error(500, str(e))
+            except Exception:
+                pass
 
     def _handle_api(self, path: str, query: str):
         if path == "/api/tree":
@@ -127,7 +134,10 @@ class PipelineHandler(SimpleHTTPRequestHandler):
 
 def run_server(host: str = "127.0.0.1", port: int = 3456):
     """Start the web UI server."""
-    server = HTTPServer((host, port), PipelineHandler)
+    import socketserver
+    class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+    server = ThreadedHTTPServer((host, port), PipelineHandler)
     print(f"[WEB] Server running at http://{host}:{port}")
     try:
         server.serve_forever()

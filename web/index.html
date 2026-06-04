@@ -158,12 +158,18 @@ function renderTree() {
 
   const years = Object.keys(treeData).sort().reverse();
   for (const year of years) {
+    // Year node: click to expand/collapse
     const yearEl = document.createElement('div');
     yearEl.className = 'tree-year';
     yearEl.innerHTML = `<span class="tree-arrow">▶</span><span class="tree-label">📅 ${year}</span><span class="tree-count">${treeData[year]._count || ''}</span>`;
 
+    // Year children container
     const yearChildren = document.createElement('div');
     yearChildren.className = 'tree-children';
+
+    yearEl.addEventListener('click', () => {
+      toggleTreeNode(yearEl, yearChildren);
+    });
 
     const months = Object.keys(treeData[year])
       .filter(k => k !== '_count')
@@ -171,12 +177,23 @@ function renderTree() {
 
     for (const month of months) {
       const monthData = treeData[year][month];
+
+      // Month node: click to expand/collapse
       const monthEl = document.createElement('div');
       monthEl.className = 'tree-month';
       monthEl.innerHTML = `<span class="tree-arrow">▶</span><span class="tree-label">${month}月</span><span class="tree-count">${monthData._count || ''}</span>`;
 
+      // Month children container
       const monthChildren = document.createElement('div');
       monthChildren.className = 'tree-children';
+
+      monthEl.addEventListener('click', () => {
+        toggleTreeNode(monthEl, monthChildren);
+        // Auto-open parent year if needed
+        if (!yearChildren.classList.contains('open')) {
+          toggleTreeNode(yearEl, yearChildren);
+        }
+      });
 
       const days = Object.keys(monthData)
         .filter(k => k !== '_count')
@@ -185,40 +202,26 @@ function renderTree() {
       for (const day of days) {
         const dayCount = monthData[day];
         const paddedDay = day.padStart(2, '0');
-        const dateStr = `${year}-${paddedDay}`;
+        const dateStr = `${year}-${month.padStart(2, '0')}-${paddedDay}`;
 
         const dayEl = document.createElement('div');
         dayEl.className = 'tree-day';
         dayEl.innerHTML = `<span class="tree-label">${paddedDay}日</span><span class="tree-count">${dayCount}</span>`;
-        dayEl.dataset.date = `${year}-${month.padStart(2, '0')}-${paddedDay}`;
+        dayEl.dataset.date = dateStr;
         dayEl.addEventListener('click', (e) => {
           e.stopPropagation();
-          selectDay(dayEl.dataset.date, dayEl);
+          selectDay(dateStr, dayEl);
         });
 
         monthChildren.appendChild(dayEl);
       }
 
-      monthEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleTreeNode(monthEl, monthChildren);
-        // Also toggle parent year if needed
-        if (!yearChildren.classList.contains('open')) {
-          toggleTreeNode(yearEl, yearChildren);
-        }
-      });
-
-      monthChildren.appendChild(monthEl);
-      yearChildren.appendChild(monthChildren);
+      monthEl.appendChild(monthChildren);
+      yearChildren.appendChild(monthEl);
     }
 
-    yearEl.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleTreeNode(yearEl, yearChildren);
-    });
-
-    yearChildren.appendChild(yearEl);
-    container.appendChild(yearChildren);
+    yearEl.appendChild(yearChildren);
+    container.appendChild(yearEl);
   }
 }
 
