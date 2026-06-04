@@ -1,15 +1,14 @@
 """Weibo collector via opencli."""
 
-import json
-import subprocess
 from typing import Any
+
+from collectors.shared import run_opencli
 
 
 class WeiboCollector:
     name = "weibo"
 
     def __init__(self, config: dict[str, Any]):
-        self.config = config
         self.keywords = config.get("keywords", [])
         self.limit = config.get("limit", 30)
 
@@ -20,48 +19,29 @@ class WeiboCollector:
         return count
 
     def _search(self, keyword: str) -> int:
-        try:
-            result = subprocess.run(
-                ["opencli", "weibo", "search", "--keyword", keyword, "--limit", str(self.limit)],
-                capture_output=True, text=True, timeout=120,
-            )
-            return self._process_result(result, f"搜索:{keyword}")
-        except FileNotFoundError:
-            print("[WARN] Weibo: opencli weibo command not available")
-            return 0
-        except Exception as e:
-            print(f"[ERROR] Weibo search '{keyword}': {e}")
+        items, err = run_opencli(
+            "opencli", "weibo", "search",
+            "--keyword", keyword, "--limit", str(self.limit),
+        )
+        if err:
+            if "not found" not in err.lower():
+                print(f"[WARN] Weibo search '{keyword}': {err[:100]}")
             return 0
 
-    def _process_result(self, result: subprocess.CompletedProcess, detail: str) -> int:
-        if result.returncode != 0:
-            print(f"[WARN] Weibo {detail}: {result.stderr[:200]}")
-            return 0
-
-        items = []
-        for line in result.stdout.strip().split("\n"):
-            if not line.strip():
-                continue
-            try:
-                items.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-
+        from lib.db import insert_item
         new_count = 0
         for item in items:
             url = item.get("url", "")
             if not url:
                 continue
-            if self._insert(
+            text = item.get("text", "")
+            if insert_item(
                 url=url,
-                title=item.get("text", "")[:200],
-                content=item.get("text", ""),
+                source=self.name,
+                title=text[:200] if text else "",
+                content=text,
                 author=item.get("user", {}).get("screen_name", ""),
-                source_detail=detail,
+                source_detail=f"搜索:{keyword}",
             ):
                 new_count += 1
         return new_count
-
-    def _insert(self, **kwargs) -> bool:
-        from lib.db import insert_item
-        return insert_item(source=self.name, **kwargs)

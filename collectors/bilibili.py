@@ -1,15 +1,14 @@
 """Bilibili collector via opencli."""
 
-import json
-import subprocess
 from typing import Any
+
+from collectors.shared import run_opencli
 
 
 class BilibiliCollector:
     name = "bilibili"
 
     def __init__(self, config: dict[str, Any]):
-        self.config = config
         self.keywords = config.get("keywords", [])
         self.limit = config.get("limit", 30)
 
@@ -23,48 +22,34 @@ class BilibiliCollector:
         return count
 
     def _hot(self) -> int:
-        try:
-            result = subprocess.run(
-                ["opencli", "bilibili", "hot", "--limit", str(self.limit)],
-                capture_output=True, text=True, timeout=120,
-            )
-            return self._process_result(result, "热门")
-        except Exception as e:
-            print(f"[ERROR] Bilibili hot: {e}")
+        items, err = run_opencli(
+            "opencli", "bilibili", "hot", "--limit", str(self.limit),
+        )
+        if err:
+            print(f"[WARN] Bilibili hot: {err[:100]}")
             return 0
+        return self._process(items, "热门")
 
     def _search(self, keyword: str) -> int:
-        try:
-            result = subprocess.run(
-                ["opencli", "bilibili", "search", "--keyword", keyword, "--limit", str(self.limit)],
-                capture_output=True, text=True, timeout=120,
-            )
-            return self._process_result(result, f"搜索:{keyword}")
-        except Exception as e:
-            print(f"[ERROR] Bilibili search '{keyword}': {e}")
+        items, err = run_opencli(
+            "opencli", "bilibili", "search",
+            "--keyword", keyword, "--limit", str(self.limit),
+        )
+        if err:
+            print(f"[WARN] Bilibili search '{keyword}': {err[:100]}")
             return 0
+        return self._process(items, f"搜索:{keyword}")
 
-    def _process_result(self, result: subprocess.CompletedProcess, detail: str) -> int:
-        if result.returncode != 0:
-            print(f"[WARN] Bilibili {detail}: {result.stderr[:200]}")
-            return 0
-
-        items = []
-        for line in result.stdout.strip().split("\n"):
-            if not line.strip():
-                continue
-            try:
-                items.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-
+    def _process(self, items: list[dict], detail: str) -> int:
+        from lib.db import insert_item
         new_count = 0
         for item in items:
             url = item.get("url", "") or item.get("link", "")
             if not url:
                 continue
-            if self._insert(
+            if insert_item(
                 url=url,
+                source=self.name,
                 title=item.get("title", ""),
                 content=item.get("description", item.get("desc", "")),
                 author=item.get("author", item.get("owner", {}).get("name", "")),
@@ -72,7 +57,3 @@ class BilibiliCollector:
             ):
                 new_count += 1
         return new_count
-
-    def _insert(self, **kwargs) -> bool:
-        from lib.db import insert_item
-        return insert_item(source=self.name, **kwargs)
