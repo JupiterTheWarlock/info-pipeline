@@ -24,7 +24,7 @@ class PipelineHandler(SimpleHTTPRequestHandler):
             self._handle_api(parsed.path, parsed.query)
         else:
             # Serve static files from web/
-            super().__init__()
+            super().do_GET()
 
     def _handle_api(self, path: str, query: str):
         if path == "/api/tree":
@@ -121,7 +121,8 @@ class PipelineHandler(SimpleHTTPRequestHandler):
         """Serve from web/ directory."""
         if path == "/":
             path = "/index.html"
-        return str(Path(self.web_dir) / path.lstrip("/"))
+        web = Path(__file__).parent.resolve() / path.lstrip("/")
+        return str(web)
 
 
 def run_server(host: str = "127.0.0.1", port: int = 3456):
