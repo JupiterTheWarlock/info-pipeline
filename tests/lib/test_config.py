@@ -26,6 +26,25 @@ class TestConfigLoad:
         finally:
             cfg_mod._config = None
 
+    def test_expands_environment_variables(self, tmp_path, monkeypatch):
+        import yaml
+
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "env-test-key")
+        config = {
+            "storage": {"db_path": "./test.db", "output_dir": "./output"},
+            "llm": {"api_key": "${DEEPSEEK_API_KEY}"},
+        }
+        with open(tmp_path / "config.yaml", "w") as f:
+            yaml.dump(config, f)
+
+        cfg_mod._config = None
+        cfg_mod._project_root = tmp_path
+        try:
+            loaded = cfg_mod.load()
+            assert loaded["llm"]["api_key"] == "env-test-key"
+        finally:
+            cfg_mod._config = None
+
 
 class TestConfigGet:
     def test_dot_notation(self, loaded_config):

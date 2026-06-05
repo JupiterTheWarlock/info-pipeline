@@ -3,313 +3,968 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InfoPipeline 📡</title>
+<title>InfoPipeline</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #1a1a2e; color: #e0e0e0; height: 100vh; display: flex;
+  :root {
+    --accent: #DA7756;
+    --accent-bright: #E8985C;
+    --accent-dim: #B85D3A;
+    --accent-glow: rgba(218, 119, 86, 0.4);
+    --bg-deep: #0A0908;
+    --bg-panel: rgba(14, 12, 10, 0.92);
+    --bg-row: rgba(24, 20, 17, 0.72);
+    --text-primary: #E8E0D8;
+    --text-secondary: #8A7E74;
+    --text-bright: #FAF0E8;
+    --border: #2E2520;
+    --border-light: #4A3D33;
+    --danger: #D66B6B;
+    --ok: #78A978;
   }
 
-  /* Sidebar */
-  #sidebar {
-    width: 280px; min-width: 280px; background: #16213e;
-    border-right: 1px solid #0f3460; display: flex; flex-direction: column;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg-deep); color: var(--text-primary); }
+  body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0;
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: 0.42; }
+
+  .app {
+    width: min(1440px, calc(100% - 32px));
+    height: calc(100vh - 32px);
+    margin: 16px auto;
+    display: grid;
+    grid-template-columns: 280px minmax(320px, 1fr) minmax(340px, 440px);
+    border: 1px solid var(--border);
+    background: rgba(10, 9, 8, 0.98);
     overflow: hidden;
   }
-  #sidebar-header {
-    padding: 20px; border-bottom: 1px solid #0f3460;
-    font-size: 18px; font-weight: 600; color: #e94560;
-  }
-  #sidebar-header span { font-size: 12px; color: #666; margin-left: 8px; }
-  #tree-container {
-    flex: 1; overflow-y: auto; padding: 8px 0;
-  }
-  #tree-container::-webkit-scrollbar { width: 6px; }
-  #tree-container::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
 
-  .tree-year, .tree-month, .tree-day {
-    display: flex; align-items: center; padding: 6px 16px; cursor: pointer;
-    transition: background 0.15s; user-select: none;
+  .sidebar, .main, .detail {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
-  .tree-year:hover, .tree-month:hover, .tree-day:hover { background: #0f3460; }
-  .tree-day.active { background: #e94560; color: white; border-radius: 0; }
-  .tree-arrow {
-    display: inline-block; width: 16px; text-align: center;
-    transition: transform 0.2s; margin-right: 4px; font-size: 12px;
+  .sidebar, .main { border-right: 1px solid var(--border); }
+  .panelHeader {
+    min-height: 64px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  .tree-arrow.expanded { transform: rotate(90deg); }
-  .tree-children { display: none; }
-  .tree-children.open { display: block; }
-  .tree-label { margin-left: 4px; }
-  .tree-count {
-    margin-left: auto; font-size: 11px; color: #666;
-    background: #0f3460; padding: 1px 6px; border-radius: 10px;
+  .brand { min-width: 0; }
+  .brandTitle {
+    color: var(--text-bright);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
   }
-  .tree-day .tree-count { background: rgba(233,69,96,0.3); color: #e94560; }
-  .tree-day.active .tree-count { background: rgba(255,255,255,0.2); color: white; }
+  .brandSub {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font: 12px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  /* Main content */
-  #main {
-    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  .iconBtn, .textBtn {
+    height: 34px;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    background: rgba(20, 17, 14, 0.9);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
-  #main-header {
-    padding: 20px 30px; border-bottom: 1px solid #0f3460;
-    display: flex; align-items: center; justify-content: space-between;
+  .iconBtn { width: 34px; flex: 0 0 34px; }
+  .textBtn { padding: 0 10px; }
+  .iconBtn:hover, .textBtn:hover,
+  .iconBtn:focus-visible, .textBtn:focus-visible {
+    border-color: var(--accent);
+    color: var(--text-bright);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
-  #main-header h1 { font-size: 22px; font-weight: 600; }
-  #stats {
-    font-size: 13px; color: #888; display: flex; gap: 20px;
-  }
-  #content-wrapper {
-    flex: 1; overflow-y: auto; padding: 30px;
-  }
-  #content-wrapper::-webkit-scrollbar { width: 8px; }
-  #content-wrapper::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 4px; }
 
-  /* Markdown rendering */
-  .markdown { max-width: 800px; line-height: 1.7; }
-  .markdown h1 { font-size: 24px; margin: 0 0 16px; color: #e94560; }
-  .markdown h2 { font-size: 18px; margin: 24px 0 12px; color: #53a8b6; border-bottom: 1px solid #0f3460; padding-bottom: 6px; }
-  .markdown h3 { font-size: 15px; margin: 16px 0 8px; color: #888; }
-  .markdown blockquote { border-left: 3px solid #e94560; padding: 8px 16px; margin: 12px 0; background: #16213e; border-radius: 0 6px 6px 0; }
-  .markdown ul { padding-left: 20px; }
-  .markdown li { margin: 6px 0; }
-  .markdown a { color: #e94560; text-decoration: none; }
-  .markdown a:hover { text-decoration: underline; }
-  .markdown code { background: #0f3460; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-  .markdown pre { background: #0f3460; padding: 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
-  .markdown strong { color: #53a8b6; }
-
-  /* Welcome state */
-  #welcome {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; height: 100%; color: #444; text-align: center;
+  .scroll {
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
   }
-  #welcome .emoji { font-size: 64px; margin-bottom: 20px; }
-  #welcome p { font-size: 16px; }
-
-  /* Loading */
-  #loading {
-    display: none; text-align: center; padding: 60px; color: #666;
+  .tree, .sourceList { padding: 10px 8px; }
+  .sectionLabel {
+    margin: 12px 8px 8px;
+    color: var(--text-secondary);
+    font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    text-transform: uppercase;
   }
-  .spinner {
-    display: inline-block; width: 32px; height: 32px;
-    border: 3px solid #0f3460; border-top-color: #e94560;
-    border-radius: 50%; animation: spin 0.8s linear infinite;
+  .treeRow, .sourceRow {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 8px 9px;
+    background: transparent;
+    color: var(--text-primary);
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    text-align: left;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .treeRow:hover, .sourceRow:hover,
+  .treeRow:focus-visible, .sourceRow:focus-visible {
+    background: rgba(218, 119, 86, 0.08);
+    border-color: var(--border-light);
+    outline: none;
+  }
+  .treeRow.selected, .sourceRow.selected {
+    background: rgba(218, 119, 86, 0.14);
+    border-color: rgba(218, 119, 86, 0.36);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .treeLabel, .sourceName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .treeCount, .sourceState {
+    color: var(--text-secondary);
+    font: 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .sourceState.enabled { color: var(--ok); }
+  .sourceState.disabled { color: var(--text-secondary); }
+  .sourceState.run-error { color: var(--danger); }
+  .treeChildren { margin-left: 14px; display: none; }
+  .treeChildren.open { display: block; }
+  .arrow { color: var(--text-secondary); transition: transform 0.16s ease; }
+  .arrow.open { transform: rotate(90deg); }
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    #sidebar { width: 220px; min-width: 220px; }
-    #content-wrapper { padding: 16px; }
+  .toolbar {
+    min-height: 64px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+  .toolbarTitle {
+    min-width: 0;
+    color: var(--text-bright);
+    font-size: 15px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .toolbarMeta {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font: 12px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+  .filterStrip {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .filterMenu { position: relative; min-width: 0; }
+  .filterTrigger {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 6px 9px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: rgba(18, 15, 12, 0.94);
+    color: var(--text-primary);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    text-align: left;
+  }
+  .filterTrigger:hover, .filterTrigger:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .filterKicker {
+    display: block;
+    color: var(--text-secondary);
+    font: 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    text-transform: uppercase;
+  }
+  .filterValue {
+    display: block;
+    min-width: 0;
+    margin-top: 2px;
+    color: var(--text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .filterList {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: #120f0c;
+    padding: 4px;
+    display: none;
+  }
+  .filterList.open { display: block; }
+  .filterOption {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    border-radius: 5px;
+    padding: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .filterOption:hover, .filterOption:focus-visible, .filterOption.selected {
+    background: rgba(218, 119, 86, 0.12);
+    color: var(--text-bright);
+    outline: none;
+  }
+
+  .itemList {
+    flex: 1;
+    min-height: 0;
+    padding: 10px;
+  }
+  .itemRow {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-row);
+    color: var(--text-primary);
+    padding: 11px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    text-align: left;
+  }
+  .itemRow:hover, .itemRow:focus-visible {
+    border-color: var(--border-light);
+    outline: none;
+  }
+  .itemRow.selected {
+    border-color: rgba(218, 119, 86, 0.48);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .itemTitle {
+    min-width: 0;
+    color: var(--text-bright);
+    font-weight: 700;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .itemSummary {
+    min-width: 0;
+    margin-top: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .itemMeta, .scoreStack {
+    color: var(--text-secondary);
+    font: 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .itemMeta {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .scoreStack {
+    min-width: 74px;
+    text-align: right;
+  }
+  .scoreStrong { color: var(--accent-bright); }
+
+  .detailBody {
+    flex: 1;
+    min-height: 0;
+    padding: 16px;
+  }
+  .detailTitle {
+    margin: 0;
+    color: var(--text-bright);
+    font-size: 18px;
+    line-height: 1.35;
+  }
+  .detailUrl {
+    display: block;
+    margin-top: 8px;
+    color: var(--accent-bright);
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+  .detailGrid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .metric {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px;
+    background: rgba(18, 15, 12, 0.72);
+  }
+  .metricLabel {
+    color: var(--text-secondary);
+    font: 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+    text-transform: uppercase;
+  }
+  .metricValue { margin-top: 4px; color: var(--text-bright); font-weight: 700; }
+  .detailSection {
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .detailSection h3 {
+    margin: 0 0 8px;
+    color: var(--text-bright);
+    font-size: 13px;
+  }
+  .detailSection p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    padding: 3px 7px;
+    color: var(--text-secondary);
+    font: 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+
+  .markdown {
+    color: var(--text-primary);
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+  }
+  .markdown h1, .markdown h2, .markdown h3 { color: var(--text-bright); }
+  .markdown h1 { font-size: 22px; }
+  .markdown h2 { font-size: 16px; margin-top: 24px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .markdown a { color: var(--accent-bright); }
+  .markdown code {
+    background: rgba(46, 37, 32, 0.9);
+    border-radius: 4px;
+    padding: 2px 5px;
+  }
+  .markdown blockquote {
+    margin: 12px 0;
+    border-left: 2px solid var(--accent);
+    padding: 8px 12px;
+    background: rgba(218, 119, 86, 0.08);
+  }
+
+  .empty, .error, .loading {
+    margin: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    color: var(--text-secondary);
+    background: rgba(18, 15, 12, 0.7);
+  }
+  .error { border-color: rgba(214, 107, 107, 0.5); color: var(--danger); }
+
+  @media (max-width: 1080px) {
+    .app {
+      height: auto;
+      min-height: calc(100vh - 24px);
+      width: min(100% - 24px, 900px);
+      grid-template-columns: 250px minmax(0, 1fr);
+    }
+    .detail {
+      grid-column: 1 / -1;
+      min-height: 420px;
+      border-top: 1px solid var(--border);
+    }
+    .main { border-right: 0; }
+  }
+
+  @media (max-width: 720px) {
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      border-left: 0;
+      border-right: 0;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .sidebar, .main {
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar { max-height: 42vh; }
+    .filterStrip { grid-template-columns: minmax(0, 1fr); }
+    .toolbar { grid-template-columns: minmax(0, 1fr); }
+    .actions { justify-content: flex-start; flex-wrap: wrap; }
+    .detailGrid { grid-template-columns: minmax(0, 1fr); }
   }
 </style>
 </head>
 <body>
-  <div id="sidebar">
-    <div id="sidebar-header">
-      📡 InfoPipeline <span>v0.1</span>
+<div class="app">
+  <aside class="sidebar">
+    <div class="panelHeader">
+      <div class="brand">
+        <div class="brandTitle">InfoPipeline</div>
+        <div class="brandSub">source browser / preference report</div>
+      </div>
+      <button class="iconBtn" id="refreshAll" title="刷新">R</button>
     </div>
-    <div id="tree-container">
-      <div id="loading-tree" style="padding: 20px; text-align: center; color: #666;">
-        <div class="spinner"></div><br>Loading...
+    <div class="scroll">
+      <div class="sectionLabel">Dates</div>
+      <div id="tree" class="tree"><div class="loading">Loading dates...</div></div>
+      <div class="sectionLabel">Sources</div>
+      <div id="sources" class="sourceList"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div>
+        <div class="toolbarTitle" id="viewTitle">Dashboard</div>
+        <div class="toolbarMeta" id="viewMeta">等待数据加载</div>
+      </div>
+      <div class="actions">
+        <button class="textBtn" id="collectBtn">Collect</button>
+        <button class="textBtn" id="analyzeBtn">Analyze</button>
+        <button class="textBtn" id="reportBtn">Report</button>
+        <button class="textBtn" id="clearBtn">Clear filters</button>
       </div>
     </div>
-  </div>
-  <div id="main">
-    <div id="main-header">
-      <h1 id="page-title">📡 InfoPipeline</h1>
-      <div id="stats"></div>
+    <div class="filterStrip">
+      <div class="filterMenu" data-filter="source"></div>
+      <div class="filterMenu" data-filter="category"></div>
+      <div class="filterMenu" data-filter="minScore"></div>
     </div>
-    <div id="content-wrapper">
-      <div id="welcome">
-        <div class="emoji">📡</div>
-        <p>选择左侧日期查看信息报告</p>
+    <div id="items" class="itemList scroll"></div>
+  </main>
+
+  <section class="detail">
+    <div class="panelHeader">
+      <div class="brand">
+        <div class="brandTitle" id="detailHeader">Detail</div>
+        <div class="brandSub" id="detailSub">选择一条信息或打开报告</div>
       </div>
-      <div id="loading">
-        <div class="spinner"></div><br>加载中...
-      </div>
-      <div id="report-content" class="markdown" style="display:none;"></div>
+      <button class="textBtn" id="openBtn" disabled>Open</button>
     </div>
-  </div>
+    <div id="detailBody" class="detailBody scroll">
+      <div class="empty">选择日期后，中间列表会显示采集条目；选择条目可查看摘要、偏好评分和原始链接。</div>
+    </div>
+  </section>
+</div>
 
 <script>
-const API_BASE = '';  // Same origin, no prefix needed
+const state = {
+  tree: {},
+  collectors: [],
+  items: [],
+  facets: { sources: [], categories: [] },
+  selectedDate: null,
+  selectedSource: "",
+  selectedCategory: "",
+  minScore: "",
+  selectedItem: null,
+  openFilter: null,
+};
 
-let treeData = {};
-let currentSelection = null;
+const scoreOptions = [
+  { value: "", label: "All scores" },
+  { value: "3", label: "Score >= 3" },
+  { value: "5", label: "Score >= 5" },
+  { value: "7", label: "Score >= 7" },
+  { value: "8", label: "Score >= 8" },
+];
+
+const els = {
+  tree: document.getElementById("tree"),
+  sources: document.getElementById("sources"),
+  items: document.getElementById("items"),
+  viewTitle: document.getElementById("viewTitle"),
+  viewMeta: document.getElementById("viewMeta"),
+  detailHeader: document.getElementById("detailHeader"),
+  detailSub: document.getElementById("detailSub"),
+  detailBody: document.getElementById("detailBody"),
+  openBtn: document.getElementById("openBtn"),
+};
+
+document.getElementById("refreshAll").addEventListener("click", init);
+document.getElementById("collectBtn").addEventListener("click", runCollect);
+document.getElementById("analyzeBtn").addEventListener("click", runAnalyze);
+document.getElementById("clearBtn").addEventListener("click", () => {
+  state.selectedSource = "";
+  state.selectedCategory = "";
+  state.minScore = "";
+  loadItems();
+});
+document.getElementById("reportBtn").addEventListener("click", loadReport);
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".filterMenu")) closeFilter();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeFilter();
+});
+els.openBtn.addEventListener("click", () => {
+  if (state.selectedItem?.url) window.open(state.selectedItem.url, "_blank", "noopener");
+});
+
+async function init() {
+  els.items.innerHTML = '<div class="loading">Loading items...</div>';
+  await Promise.all([loadTree(), loadCollectors()]);
+  renderFilters();
+  await loadItems();
+}
 
 async function loadTree() {
   try {
-    const resp = await fetch(`${API_BASE}/api/tree`);
-    treeData = await resp.json();
+    const resp = await fetch("/api/tree");
+    state.tree = await resp.json();
     renderTree();
-  } catch (e) {
-    console.error('Failed to load tree:', e);
-    document.getElementById('loading-tree').innerHTML = '<p style="color:#e94560">Failed to load</p>';
+  } catch (error) {
+    els.tree.innerHTML = `<div class="error">日期树加载失败: ${escapeHtml(error.message)}</div>`;
   }
+}
+
+async function loadCollectors() {
+  try {
+    const resp = await fetch("/api/collectors");
+    const data = await resp.json();
+    state.collectors = data.collectors || [];
+    renderSources();
+  } catch (error) {
+    els.sources.innerHTML = `<div class="error">来源状态加载失败: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function loadItems() {
+  const params = new URLSearchParams();
+  if (state.selectedDate) params.set("date", state.selectedDate);
+  if (state.selectedSource) params.set("source", state.selectedSource);
+  if (state.selectedCategory) params.set("category", state.selectedCategory);
+  if (state.minScore) params.set("min_score", state.minScore);
+  params.set("limit", "200");
+
+  els.items.innerHTML = '<div class="loading">Loading items...</div>';
+  try {
+    const resp = await fetch(`/api/items?${params.toString()}`);
+    if (!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    state.items = data.items || [];
+    state.facets = data.facets || { sources: [], categories: [] };
+    state.selectedItem = state.items[0] || null;
+    renderFilters();
+    renderItems();
+    renderDetail();
+    updateHeader();
+  } catch (error) {
+    els.items.innerHTML = `<div class="error">信息列表加载失败: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function loadReport() {
+  if (!state.selectedDate) {
+    els.detailBody.innerHTML = '<div class="empty">先选择一个日期，再打开日报。</div>';
+    return;
+  }
+  els.detailHeader.textContent = "Report";
+  els.detailSub.textContent = state.selectedDate;
+  els.openBtn.disabled = true;
+  els.detailBody.innerHTML = '<div class="loading">Generating or loading report...</div>';
+  try {
+    const resp = await fetch(`/api/report/${state.selectedDate}`);
+    const data = await resp.json();
+    els.detailBody.innerHTML = data.content
+      ? `<div class="markdown">${renderMarkdown(data.content)}</div>`
+      : `<div class="empty">${state.selectedDate} 暂无可生成报告的分析结果。</div>`;
+  } catch (error) {
+    els.detailBody.innerHTML = `<div class="error">报告加载失败: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function runCollect() {
+  const collectors = ["twitter", "reddit", "linuxdo", "zhihu"].join(",");
+  await runAction("collect", `/api/run/collect?collectors=${encodeURIComponent(collectors)}`, async (data) => {
+    state.collectors = data.collectors || state.collectors;
+    renderSources();
+    await Promise.all([loadTree(), loadItems()]);
+    setRunMessage(`Collect finished: ${data.total_new || 0} new items`);
+  });
+}
+
+async function runAnalyze() {
+  await runAction("analyze", "/api/run/analyze", async () => {
+    await loadItems();
+    setRunMessage("Analyze finished");
+  });
+}
+
+async function runAction(label, url, afterSuccess) {
+  setActionButtons(true);
+  setRunMessage(`${label} running...`);
+  try {
+    const resp = await fetch(url, { method: "POST" });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || resp.statusText);
+    await afterSuccess(data);
+  } catch (error) {
+    setRunMessage(`${label} failed: ${error.message}`);
+    els.detailHeader.textContent = "Run Error";
+    els.detailSub.textContent = label;
+    els.detailBody.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
+  } finally {
+    setActionButtons(false);
+  }
+}
+
+function setActionButtons(disabled) {
+  ["collectBtn", "analyzeBtn", "reportBtn", "clearBtn", "refreshAll"].forEach((id) => {
+    document.getElementById(id).disabled = disabled;
+  });
+}
+
+function setRunMessage(message) {
+  els.viewMeta.textContent = message;
 }
 
 function renderTree() {
-  const container = document.getElementById('tree-container');
-  container.innerHTML = '';
-
-  const years = Object.keys(treeData).sort().reverse();
-  for (const year of years) {
-    // Year node: click to expand/collapse
-    const yearEl = document.createElement('div');
-    yearEl.className = 'tree-year';
-    yearEl.innerHTML = `<span class="tree-arrow">▶</span><span class="tree-label">📅 ${year}</span><span class="tree-count">${treeData[year]._count || ''}</span>`;
-
-    // Year children container
-    const yearChildren = document.createElement('div');
-    yearChildren.className = 'tree-children';
-
-    yearEl.addEventListener('click', () => {
-      toggleTreeNode(yearEl, yearChildren);
-    });
-
-    const months = Object.keys(treeData[year])
-      .filter(k => k !== '_count')
-      .sort((a, b) => b.localeCompare(a));
-
-    for (const month of months) {
-      const monthData = treeData[year][month];
-
-      // Month node: click to expand/collapse
-      const monthEl = document.createElement('div');
-      monthEl.className = 'tree-month';
-      monthEl.innerHTML = `<span class="tree-arrow">▶</span><span class="tree-label">${month}月</span><span class="tree-count">${monthData._count || ''}</span>`;
-
-      // Month children container
-      const monthChildren = document.createElement('div');
-      monthChildren.className = 'tree-children';
-
-      monthEl.addEventListener('click', () => {
-        toggleTreeNode(monthEl, monthChildren);
-        // Auto-open parent year if needed
-        if (!yearChildren.classList.contains('open')) {
-          toggleTreeNode(yearEl, yearChildren);
-        }
-      });
-
-      const days = Object.keys(monthData)
-        .filter(k => k !== '_count')
-        .sort((a, b) => b.localeCompare(a));
-
-      for (const day of days) {
-        const dayCount = monthData[day];
-        const paddedDay = day.padStart(2, '0');
-        const dateStr = `${year}-${month.padStart(2, '0')}-${paddedDay}`;
-
-        const dayEl = document.createElement('div');
-        dayEl.className = 'tree-day';
-        dayEl.innerHTML = `<span class="tree-label">${paddedDay}日</span><span class="tree-count">${dayCount}</span>`;
-        dayEl.dataset.date = dateStr;
-        dayEl.addEventListener('click', (e) => {
-          e.stopPropagation();
-          selectDay(dateStr, dayEl);
+  const years = Object.keys(state.tree).sort().reverse();
+  if (!years.length) {
+    els.tree.innerHTML = '<div class="empty">暂无采集日期。运行 collect 后这里会出现日期树。</div>';
+    return;
+  }
+  els.tree.innerHTML = "";
+  years.forEach((year) => {
+    const yearWrap = createTreeGroup(year, `${year}`, state.tree[year]._count || 0);
+    const months = Object.keys(state.tree[year]).filter((k) => k !== "_count").sort((a, b) => b.localeCompare(a));
+    months.forEach((month) => {
+      const monthData = state.tree[year][month];
+      const monthWrap = createTreeGroup(`${year}-${month}`, `${month}月`, monthData._count || 0);
+      const days = Object.keys(monthData).filter((k) => k !== "_count").sort((a, b) => b.localeCompare(a));
+      days.forEach((day) => {
+        const date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        const row = createTreeRow(day.padStart(2, "0") + "日", monthData[day], false);
+        row.dataset.date = date;
+        row.classList.toggle("selected", date === state.selectedDate);
+        row.addEventListener("click", () => {
+          state.selectedDate = date;
+          renderTree();
+          loadItems();
         });
-
-        monthChildren.appendChild(dayEl);
-      }
-
-      monthEl.appendChild(monthChildren);
-      yearChildren.appendChild(monthEl);
-    }
-
-    yearEl.appendChild(yearChildren);
-    container.appendChild(yearEl);
-  }
+        monthWrap.childrenBox.appendChild(row);
+      });
+      yearWrap.childrenBox.appendChild(monthWrap.root);
+    });
+    els.tree.appendChild(yearWrap.root);
+  });
 }
 
-function toggleTreeNode(header, children) {
-  const arrow = header.querySelector('.tree-arrow');
-  const isOpen = children.classList.contains('open');
-  if (isOpen) {
-    children.classList.remove('open');
-    arrow.classList.remove('expanded');
-  } else {
-    children.classList.add('open');
-    arrow.classList.add('expanded');
-  }
+function createTreeGroup(id, label, count) {
+  const root = document.createElement("div");
+  const row = createTreeRow(label, count, true);
+  const childrenBox = document.createElement("div");
+  childrenBox.className = "treeChildren open";
+  row.querySelector(".arrow").classList.add("open");
+  row.addEventListener("click", () => {
+    childrenBox.classList.toggle("open");
+    row.querySelector(".arrow").classList.toggle("open");
+  });
+  root.appendChild(row);
+  root.appendChild(childrenBox);
+  return { root, childrenBox };
 }
 
-async function selectDay(dateStr, el) {
-  // Update active state
-  document.querySelectorAll('.tree-day.active').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  currentSelection = dateStr;
-
-  // Show loading
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('report-content').style.display = 'none';
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('page-title').textContent = `📡 ${dateStr}`;
-
-  try {
-    const resp = await fetch(`${API_BASE}/api/report/${dateStr}`);
-    const data = await resp.json();
-
-    if (data.content) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('report-content').style.display = 'block';
-      document.getElementById('report-content').innerHTML = renderMarkdown(data.content);
-    } else {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('report-content').style.display = 'block';
-      document.getElementById('report-content').innerHTML = '<p style="color:#666">该日期暂无报告数据</p>';
-    }
-
-    // Update stats
-    if (data.stats) {
-      document.getElementById('stats').innerHTML =
-        `<span>📋 ${data.stats.items || 0} 条信息</span>` +
-        `<span>📂 ${data.stats.categories || 0} 个分类</span>`;
-    }
-  } catch (e) {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('report-content').style.display = 'block';
-    document.getElementById('report-content').innerHTML = `<p style="color:#e94560">加载失败: ${e.message}</p>`;
-  }
+function createTreeRow(label, count, expandable) {
+  const row = document.createElement("button");
+  row.className = "treeRow";
+  row.type = "button";
+  row.innerHTML = `
+    <span class="arrow">${expandable ? ">" : ""}</span>
+    <span class="treeLabel">${escapeHtml(label)}</span>
+    <span class="treeCount">${count || ""}</span>
+  `;
+  return row;
 }
 
-// Simple markdown renderer (no dependencies)
-function renderMarkdown(md) {
-  let html = md;
-  // Escape HTML (but preserve intentional HTML in content)
-  // We do minimal escaping since this is internal tool
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  // Blockquotes
-  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  // Unordered lists
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  // Wrap consecutive <li> in <ul>
-  html = html.replace(/<\/ul>\s*<ul>/g, '');
-  // Paragraphs
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-  // Clean up empty paragraphs
-  html = html.replace(/<p>\s*<(h[1-3]|blockquote|ul|li)/g, '<$1');
-  html = html.replace(/<\/(h[1-3]|blockquote|ul)>\s*<\/p>/g, '</$1>');
-  html = html.replace(/<p>\s*<\/p>/g, '');
+function renderSources() {
+  if (!state.collectors.length) {
+    els.sources.innerHTML = '<div class="empty">没有 collector 配置。</div>';
+    return;
+  }
+  els.sources.innerHTML = "";
+  state.collectors.forEach((collector) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "sourceRow";
+    row.classList.toggle("selected", state.selectedSource === collector.name);
+    const run = collector.latest_run;
+    const stateLabel = run ? (run.status === "error" ? "err" : `+${run.new_count || 0}`) : (collector.enabled ? "never" : "off");
+    const stateClass = run?.status === "error" ? "run-error" : collector.enabled ? "enabled" : "disabled";
+    row.title = run?.errors?.length ? run.errors.join(" | ") : `${collector.name} ${stateLabel}`;
+    row.innerHTML = `
+      <span></span>
+      <span class="sourceName">${escapeHtml(collector.display_name || collector.name)}</span>
+      <span class="sourceState ${stateClass}">${escapeHtml(stateLabel)}</span>
+    `;
+    row.addEventListener("click", () => {
+      state.selectedSource = state.selectedSource === collector.name ? "" : collector.name;
+      renderSources();
+      loadItems();
+    });
+    els.sources.appendChild(row);
+  });
+}
+
+function renderFilters() {
+  renderFilter("source", "Source", state.selectedSource || "All sources",
+    [{ value: "", label: "All sources" }, ...state.facets.sources.map((v) => ({ value: v, label: v }))],
+    (value) => { state.selectedSource = value; renderSources(); loadItems(); });
+  renderFilter("category", "Category", state.selectedCategory || "All categories",
+    [{ value: "", label: "All categories" }, ...state.facets.categories.map((v) => ({ value: v, label: v }))],
+    (value) => { state.selectedCategory = value; loadItems(); });
+  renderFilter("minScore", "Score", scoreLabel(state.minScore),
+    scoreOptions,
+    (value) => { state.minScore = value; loadItems(); });
+}
+
+function renderFilter(id, label, currentLabel, options, onSelect) {
+  const root = document.querySelector(`.filterMenu[data-filter="${id}"]`);
+  root.innerHTML = "";
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "filterTrigger";
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", state.openFilter === id ? "true" : "false");
+  trigger.innerHTML = `
+    <span>
+      <span class="filterKicker">${escapeHtml(label)}</span>
+      <span class="filterValue">${escapeHtml(currentLabel)}</span>
+    </span>
+    <span>v</span>
+  `;
+  const list = document.createElement("div");
+  list.className = "filterList";
+  list.classList.toggle("open", state.openFilter === id);
+  list.setAttribute("role", "listbox");
+  options.forEach((option) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "filterOption";
+    item.classList.toggle("selected", option.value === filterValue(id));
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", option.value === filterValue(id) ? "true" : "false");
+    item.textContent = option.label;
+    item.addEventListener("click", () => {
+      closeFilter();
+      onSelect(option.value);
+    });
+    list.appendChild(item);
+  });
+  trigger.addEventListener("click", () => {
+    state.openFilter = state.openFilter === id ? null : id;
+    renderFilters();
+  });
+  trigger.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      state.openFilter = state.openFilter === id ? null : id;
+      renderFilters();
+    }
+  });
+  root.appendChild(trigger);
+  root.appendChild(list);
+}
+
+function renderItems() {
+  if (!state.items.length) {
+    const scope = state.selectedDate || "全部日期";
+    els.items.innerHTML = `<div class="empty">${escapeHtml(scope)} 下没有匹配当前过滤条件的信息。可以清空过滤器或先运行采集/分析。</div>`;
+    return;
+  }
+  els.items.innerHTML = "";
+  state.items.forEach((item) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "itemRow";
+    row.classList.toggle("selected", state.selectedItem?.id === item.id);
+    row.innerHTML = `
+      <span class="minBlock">
+        <span class="itemTitle">${escapeHtml(item.title)}</span>
+        <span class="itemSummary">${escapeHtml(item.summary || item.content || "未分析")}</span>
+        <span class="itemMeta">
+          <span>${escapeHtml(item.source || "")}</span>
+          <span>${escapeHtml(item.category || "未分析")}</span>
+          <span>${formatTime(item.collected_at)}</span>
+        </span>
+      </span>
+      <span class="scoreStack">
+        <span class="scoreStrong">P ${formatScore(item.preference_score)}</span><br>
+        <span>S ${formatScore(item.score)}</span>
+      </span>
+    `;
+    row.addEventListener("click", () => {
+      state.selectedItem = item;
+      renderItems();
+      renderDetail();
+    });
+    els.items.appendChild(row);
+  });
+}
+
+function renderDetail() {
+  const item = state.selectedItem;
+  if (!item) {
+    els.detailHeader.textContent = "Detail";
+    els.detailSub.textContent = "没有选中信息";
+    els.openBtn.disabled = true;
+    els.detailBody.innerHTML = '<div class="empty">当前过滤条件下没有信息。</div>';
+    return;
+  }
+  els.detailHeader.textContent = item.source || "Item";
+  els.detailSub.textContent = item.category || "未分析";
+  els.openBtn.disabled = !item.url;
+  els.detailBody.innerHTML = `
+    <h2 class="detailTitle">${escapeHtml(item.title)}</h2>
+    <a class="detailUrl" href="${escapeAttr(item.url || "#")}" target="_blank" rel="noopener">${escapeHtml(item.url || "")}</a>
+    <div class="detailGrid">
+      <div class="metric"><div class="metricLabel">Preference</div><div class="metricValue">${formatScore(item.preference_score)}/10</div></div>
+      <div class="metric"><div class="metricLabel">Score</div><div class="metricValue">${formatScore(item.score)}/10</div></div>
+      <div class="metric"><div class="metricLabel">Source</div><div class="metricValue">${escapeHtml(item.source || "")}</div></div>
+      <div class="metric"><div class="metricLabel">Collected</div><div class="metricValue">${formatTime(item.collected_at)}</div></div>
+    </div>
+    <div class="detailSection"><h3>Summary</h3><p>${escapeHtml(item.summary || "未分析")}</p></div>
+    <div class="detailSection"><h3>Why Relevant</h3><p>${escapeHtml(item.why_relevant || "暂无")}</p></div>
+    <div class="detailSection"><h3>Risk</h3><p>${escapeHtml(item.risk || "暂无")}</p></div>
+    <div class="detailSection"><h3>Content</h3><p>${escapeHtml(item.content || "暂无正文摘要")}</p></div>
+    <div class="detailSection"><h3>Tags</h3><div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") || '<span class="tag">none</span>'}</div></div>
+  `;
+}
+
+function updateHeader() {
+  els.viewTitle.textContent = state.selectedDate ? `Items / ${state.selectedDate}` : "Items / all dates";
+  const filters = [
+    state.selectedSource || "all sources",
+    state.selectedCategory || "all categories",
+    scoreLabel(state.minScore),
+  ];
+  els.viewMeta.textContent = `${state.items.length} items | ${filters.join(" | ")}`;
+}
+
+function closeFilter() {
+  if (!state.openFilter) return;
+  state.openFilter = null;
+  renderFilters();
+}
+
+function filterValue(id) {
+  if (id === "source") return state.selectedSource;
+  if (id === "category") return state.selectedCategory;
+  return state.minScore;
+}
+
+function scoreLabel(value) {
+  return scoreOptions.find((option) => option.value === value)?.label || "All scores";
+}
+
+function formatScore(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function formatTime(value) {
+  if (!value) return "n/a";
+  return new Date(value * 1000).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function renderMarkdown(markdown) {
+  let html = escapeHtml(markdown);
+  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+  html = html.replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+  html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
+  html = html.replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>").replace(/<\/ul>\s*<ul>/g, "");
+  html = html.replace(/\n\n/g, "</p><p>");
+  html = `<p>${html}</p>`;
+  html = html.replace(/<p>\s*<(h[1-3]|blockquote|ul)/g, "<$1");
+  html = html.replace(/<\/(h[1-3]|blockquote|ul)>\s*<\/p>/g, "</$1>");
+  html = html.replace(/<p>\s*<\/p>/g, "");
   return html;
 }
 
-// Init
-loadTree();
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, "&#096;");
+}
+
+init();
 </script>
 </body>
 </html>

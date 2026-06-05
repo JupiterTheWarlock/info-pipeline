@@ -71,6 +71,41 @@ class TestAnalyzeItems:
             assert result[1]["category"] == "安全"
         cfg_mod._config = None
 
+    def test_normalizes_shorthand_category(self):
+        from lib.llm import normalize_category
+
+        categories = [
+            "Indie Game / 独立游戏",
+            "AI Engineering / AI 工程",
+            "Other / 其他",
+        ]
+        assert normalize_category("Indie Game", categories) == "Indie Game / 独立游戏"
+        assert normalize_category("AI 工程", categories) == "AI Engineering / AI 工程"
+        assert normalize_category("Unknown", categories) == "Other / 其他"
+
+    def test_prompt_includes_item_content(self, tmp_path):
+        _setup_config(tmp_path)
+        items = [
+            {
+                "id": 1,
+                "title": "Unique indie AI launch post",
+                "source": "test",
+                "url": "https://example.com/unique",
+                "content": "Unique content marker",
+            },
+        ]
+        llm_response = json.dumps([
+            {"index": 1, "category": "AI", "score": 8, "summary": "Big AI news"},
+        ])
+
+        with patch("lib.llm.call_llm", return_value=llm_response) as mock_call:
+            from lib.llm import analyze_items
+            analyze_items(items)
+            prompt = mock_call.call_args.args[0]
+            assert "Unique indie AI launch post" in prompt
+            assert "Unique content marker" in prompt
+        cfg_mod._config = None
+
     def test_markdown_code_block_json(self, tmp_path):
         _setup_config(tmp_path)
         items = [{"id": 1, "title": "Test", "source": "test", "url": "https://example.com/1"}]

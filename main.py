@@ -30,26 +30,15 @@ def load_config():
 
 def run_collectors(collector_names: list[str] | None = None):
     """Run data collectors."""
-    from lib.db import init_db
+    from lib.db import init_db, save_collector_run
     from lib.config import get
+    from collectors.registry import available_collectors, run_collector
 
     init_db()
     collector_cfg = get("collectors", {})
 
     total_new = 0
-
-    # Import and instantiate collectors
-    collectors_map = {
-        "reddit": ("collectors.reddit", "RedditCollector"),
-        "hackernews": ("collectors.hackernews", "HackerNewsCollector"),
-        "twitter": ("collectors.twitter", "TwitterCollector"),
-        "bilibili": ("collectors.bilibili", "BilibiliCollector"),
-        "zhihu": ("collectors.zhihu", "ZhihuCollector"),
-        "weibo": ("collectors.weibo", "WeiboCollector"),
-        "rss": ("collectors.rss", "RSSCollector"),
-        "github_trending": ("collectors.github_trending", "GitHubTrendingCollector"),
-        "indie_games": ("collectors.indie_games", "IndieGamesCollector"),
-    }
+    available = set(available_collectors(collector_cfg))
 
     names = collector_names or [k for k, v in collector_cfg.items() if v.get("enabled", False)]
 
@@ -61,23 +50,25 @@ def run_collectors(collector_names: list[str] | None = None):
             print(f"[SKIP] {name}: disabled")
             continue
 
-        if name not in collectors_map:
+        if name not in available:
             print(f"[WARN] {name}: no collector implementation")
             continue
 
-        module_path, class_name = collectors_map[name]
-        try:
-            module = __import__(module_path, fromlist=[class_name])
-            cls = getattr(module, class_name)
-            collector = cls(collector_cfg[name])
-            print(f"[COLLECT] {name}...")
-            start = time.time()
-            new_count = collector.collect()
-            elapsed = time.time() - start
-            print(f"[COLLECT] {name}: {new_count} new items ({elapsed:.1f}s)")
-            total_new += new_count
-        except Exception as e:
-            print(f"[ERROR] {name}: {e}")
+        print(f"[COLLECT] {name}...")
+        result = run_collector(name, collector_cfg[name], collector_cfg)
+        if result.errors:
+            print(f"[ERROR] {name}: {' | '.join(result.errors)}")
+        print(f"[COLLECT] {name}: {result.new_count} new items ({result.elapsed:.1f}s)")
+        save_collector_run(
+            name=name,
+            status="error" if result.errors else "ok",
+            new_count=result.new_count,
+            seen_count=result.seen_count,
+            errors=result.errors,
+            started_at=result.started_at,
+            finished_at=result.finished_at,
+        )
+        total_new += result.new_count
 
     print(f"\n[COLLECT] Total: {total_new} new items collected")
     return total_new

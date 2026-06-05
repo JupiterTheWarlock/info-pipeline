@@ -26,6 +26,10 @@ def run_analysis():
                 category=item.get("category", "其他"),
                 score=float(item.get("score", 3)),
                 summary=item.get("summary", ""),
+                preference_score=float(item.get("preference_score", 0)),
+                why_relevant=item.get("why_relevant", ""),
+                risk=item.get("risk", ""),
+                tags=item.get("tags", []),
             )
         print(f"[ANALYZE] Batch done")
 

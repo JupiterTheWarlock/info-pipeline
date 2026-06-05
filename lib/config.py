@@ -24,7 +24,7 @@ def load() -> dict[str, Any]:
         )
 
     with open(config_path, encoding="utf-8") as f:
-        _config = yaml.safe_load(f)
+        _config = _expand_env(yaml.safe_load(f) or {})
 
     # Resolve relative paths against project root
     if "storage" in _config:
@@ -38,6 +38,17 @@ def load() -> dict[str, Any]:
         )
 
     return _config
+
+
+def _expand_env(value: Any) -> Any:
+    """Recursively expand ${ENV_NAME} placeholders in config values."""
+    if isinstance(value, dict):
+        return {k: _expand_env(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_expand_env(v) for v in value]
+    if isinstance(value, str):
+        return os.path.expandvars(value)
+    return value
 
 
 def get(keys: str, default: Any = None) -> Any:

@@ -1,6 +1,7 @@
 """SQLite database operations for the pipeline."""
 
 import hashlib
+import json
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -40,6 +41,10 @@ def init_db():
             category TEXT,
             score REAL DEFAULT 0,
             summary TEXT,
+            preference_score REAL DEFAULT 0,
+            why_relevant TEXT,
+            risk TEXT,
+            tags_json TEXT,
             analyzed_at REAL
         );
 
@@ -47,6 +52,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_items_collected_at ON items(collected_at);
         CREATE INDEX IF NOT EXISTS idx_items_category ON items(category);
         CREATE INDEX IF NOT EXISTS idx_items_score ON items(score DESC);
+        CREATE INDEX IF NOT EXISTS idx_items_preference_score ON items(preference_score DESC);
 
         CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,9 +63,40 @@ def init_db():
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_date_type ON reports(date, type);
+
+        CREATE TABLE IF NOT EXISTS collector_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            new_count INTEGER DEFAULT 0,
+            seen_count INTEGER DEFAULT 0,
+            errors_json TEXT,
+            started_at REAL NOT NULL,
+            finished_at REAL NOT NULL,
+            elapsed REAL NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_collector_runs_name_started
+          ON collector_runs(name, started_at DESC);
     """)
+    _ensure_columns(conn, "items", {
+        "preference_score": "REAL DEFAULT 0",
+        "why_relevant": "TEXT",
+        "risk": "TEXT",
+        "tags_json": "TEXT",
+    })
     conn.commit()
     conn.close()
+
+
+def _ensure_columns(conn: sqlite3.Connection, table: str, columns: dict[str, str]):
+    existing = {
+        row["name"]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    for name, definition in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
 
 
 def url_hash(url: str) -> str:
@@ -88,7 +125,7 @@ def insert_item(
             (
                 h, url, title, source, source_detail, author, content,
                 time.time(), published_at,
-                __import__("json").dumps(extra) if extra else None,
+                json.dumps(extra, ensure_ascii=False) if extra else None,
             ),
         )
         conn.commit()
@@ -108,12 +145,33 @@ def get_unanalyzed(limit: int = 100) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def update_analysis(item_id: int, category: str, score: float, summary: str):
+def update_analysis(
+    item_id: int,
+    category: str,
+    score: float,
+    summary: str,
+    preference_score: float = 0,
+    why_relevant: str = "",
+    risk: str = "",
+    tags: list[str] | None = None,
+):
     conn = get_connection()
     conn.execute(
-        """UPDATE items SET category = ?, score = ?, summary = ?, analyzed_at = ?
+        """UPDATE items SET category = ?, score = ?, summary = ?,
+              preference_score = ?, why_relevant = ?, risk = ?, tags_json = ?,
+              analyzed_at = ?
            WHERE id = ?""",
-        (category, score, summary, time.time(), item_id),
+        (
+            category,
+            score,
+            summary,
+            preference_score,
+            why_relevant,
+            risk,
+            json.dumps(tags or [], ensure_ascii=False),
+            time.time(),
+            item_id,
+        ),
     )
     conn.commit()
     conn.close()
@@ -135,7 +193,7 @@ def get_items_for_report(
         """SELECT * FROM items
            WHERE collected_at >= ? AND collected_at < ?
              AND analyzed_at IS NOT NULL AND score >= ?
-           ORDER BY score DESC, collected_at DESC""",
+           ORDER BY preference_score DESC, score DESC, collected_at DESC""",
         (start_ts, end_ts, min_score),
     ).fetchall()
     conn.close()
@@ -151,6 +209,131 @@ def get_items_for_report(
             categories[cat].append(item)
 
     return categories
+
+
+def query_items(
+    date_str: str | None = None,
+    source: str | None = None,
+    category: str | None = None,
+    min_score: float | None = None,
+    limit: int = 200,
+) -> list[dict]:
+    """Query collected items for the dashboard."""
+    where = []
+    params: list[Any] = []
+
+    if date_str:
+        dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        start_ts = dt.timestamp()
+        end_ts = start_ts + 86400
+        where.append("collected_at >= ? AND collected_at < ?")
+        params.extend([start_ts, end_ts])
+    if source:
+        where.append("source = ?")
+        params.append(source)
+    if category:
+        where.append("category = ?")
+        params.append(category)
+    if min_score is not None:
+        where.append("score >= ?")
+        params.append(min_score)
+
+    sql = "SELECT * FROM items"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY preference_score DESC, score DESC, collected_at DESC LIMIT ?"
+    params.append(limit)
+
+    conn = get_connection()
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    items = []
+    for row in rows:
+        item = dict(row)
+        item["tags"] = json.loads(item.get("tags_json") or "[]")
+        items.append(item)
+    return items
+
+
+def get_item_facets(date_str: str | None = None) -> dict[str, list[str]]:
+    """Return source and category facets for the dashboard."""
+    where = []
+    params: list[Any] = []
+    if date_str:
+        dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        where.append("collected_at >= ? AND collected_at < ?")
+        params.extend([dt.timestamp(), dt.timestamp() + 86400])
+    suffix = " WHERE " + " AND ".join(where) if where else ""
+
+    conn = get_connection()
+    sources = conn.execute(
+        f"SELECT DISTINCT source FROM items{suffix} ORDER BY source",
+        params,
+    ).fetchall()
+    categories = conn.execute(
+        f"SELECT DISTINCT category FROM items{suffix} WHERE category IS NOT NULL ORDER BY category"
+        if not where
+        else f"SELECT DISTINCT category FROM items{suffix} AND category IS NOT NULL ORDER BY category",
+        params,
+    ).fetchall()
+    conn.close()
+    return {
+        "sources": [r["source"] for r in sources if r["source"]],
+        "categories": [r["category"] for r in categories if r["category"]],
+    }
+
+
+def save_collector_run(
+    name: str,
+    status: str,
+    new_count: int,
+    seen_count: int,
+    errors: list[str] | None,
+    started_at: float,
+    finished_at: float,
+):
+    """Persist one collector execution result for UI/evaluation visibility."""
+    conn = get_connection()
+    conn.execute(
+        """INSERT INTO collector_runs
+           (name, status, new_count, seen_count, errors_json, started_at, finished_at, elapsed)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            name,
+            status,
+            int(new_count),
+            int(seen_count),
+            json.dumps(errors or [], ensure_ascii=False),
+            started_at,
+            finished_at,
+            max(finished_at - started_at, 0),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_latest_collector_runs() -> dict[str, dict]:
+    """Return the latest persisted run for each collector."""
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT cr.*
+           FROM collector_runs cr
+           JOIN (
+             SELECT name, MAX(started_at) AS started_at
+             FROM collector_runs
+             GROUP BY name
+           ) latest
+             ON cr.name = latest.name AND cr.started_at = latest.started_at
+           ORDER BY cr.name"""
+    ).fetchall()
+    conn.close()
+    runs = {}
+    for row in rows:
+        run = dict(row)
+        run["errors"] = json.loads(run.get("errors_json") or "[]")
+        runs[run["name"]] = run
+    return runs
 
 
 def save_report(date_str: str, report_type: str, content: str):

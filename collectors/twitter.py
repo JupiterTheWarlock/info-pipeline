@@ -12,9 +12,11 @@ class TwitterCollector:
         self.accounts = config.get("accounts", [])
         self.keywords = config.get("keywords", [])
         self.limit = config.get("limit", 30)
+        self.last_errors: list[str] = []
 
     def collect(self) -> int:
         count = 0
+        self.last_errors = []
         for kw in self.keywords:
             count += self._search(kw)
         for account in self.accounts:
@@ -28,7 +30,9 @@ class TwitterCollector:
             "opencli", "twitter", "timeline", "--limit", str(self.limit),
         )
         if err:
-            print(f"[WARN] Twitter timeline: {err[:100]}")
+            msg = f"timeline: {err[:100]}"
+            self.last_errors.append(msg)
+            print(f"[WARN] Twitter {msg}")
             return 0
         return self._process(items, "timeline")
 
@@ -38,7 +42,9 @@ class TwitterCollector:
             "--query", query, "--limit", str(self.limit),
         )
         if err:
-            print(f"[WARN] Twitter search '{query}': {err[:100]}")
+            msg = f"search '{query}': {err[:100]}"
+            self.last_errors.append(msg)
+            print(f"[WARN] Twitter {msg}")
             return 0
         return self._process(items, f"search:{query}")
 

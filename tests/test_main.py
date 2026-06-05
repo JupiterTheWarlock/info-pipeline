@@ -72,3 +72,31 @@ class TestFullPipeline:
             mock_r.assert_called_once_with("2026-01-01")
             mock_p.assert_called_once_with("2026-01-01")
         cfg_mod._config = None
+
+
+class TestCollectorsRunHistory:
+    def test_run_collectors_persists_result(self, tmp_path):
+        _setup_config(tmp_path)
+        import main
+        from collectors.registry import CollectorRunResult
+        from lib.db import get_latest_collector_runs, init_db
+
+        init_db()
+        result = CollectorRunResult(
+            name="demo",
+            new_count=2,
+            seen_count=2,
+            errors=[],
+            started_at=10.0,
+            finished_at=12.0,
+        )
+        cfg = {"enabled": True, "module": "unused", "class": "Unused"}
+        with patch("lib.config.get", return_value={"demo": cfg}), \
+             patch("collectors.registry.available_collectors", return_value=["demo"]), \
+             patch("collectors.registry.run_collector", return_value=result):
+            assert main.run_collectors(["demo"]) == 2
+
+        runs = get_latest_collector_runs()
+        assert runs["demo"]["status"] == "ok"
+        assert runs["demo"]["new_count"] == 2
+        cfg_mod._config = None

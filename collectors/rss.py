@@ -1,8 +1,15 @@
 """RSS collector."""
 
-import feedparser
+try:
+    import feedparser
+except ModuleNotFoundError:
+    class _MissingFeedparser:
+        @staticmethod
+        def parse(_url):
+            raise ModuleNotFoundError("No module named 'feedparser'")
+
+    feedparser = _MissingFeedparser()
 from typing import Any
-from datetime import timezone
 
 
 class RSSCollector:

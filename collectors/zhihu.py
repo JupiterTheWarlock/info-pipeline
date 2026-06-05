@@ -11,9 +11,11 @@ class ZhihuCollector:
     def __init__(self, config: dict[str, Any]):
         self.keywords = config.get("keywords", [])
         self.limit = config.get("limit", 30)
+        self.last_errors: list[str] = []
 
     def collect(self) -> int:
         count = 0
+        self.last_errors = []
         for kw in self.keywords:
             count += self._search(kw)
         return count
@@ -24,8 +26,10 @@ class ZhihuCollector:
             "--keyword", keyword, "--limit", str(self.limit),
         )
         if err:
-            if "not found" not in err.lower():
-                print(f"[WARN] Zhihu search '{keyword}': {err[:100]}")
+            if "command not found" in err.lower() or "not found" not in err.lower():
+                msg = f"search '{keyword}': {err[:100]}"
+                self.last_errors.append(msg)
+                print(f"[WARN] Zhihu {msg}")
             return 0
 
         from lib.db import insert_item

@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
 import lib.config as cfg_mod
@@ -46,7 +47,7 @@ class TestRedditCollector:
         items = [{"url": "https://reddit.com/1", "title": "Post 1", "selftext": "Body", "author": "user1"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.reddit.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.reddit import RedditCollector
             c = RedditCollector({"subreddits": ["python"], "limit": 10})
             assert c.collect() == 1
@@ -56,7 +57,7 @@ class TestRedditCollector:
         _setup_config(tmp_path)
         mock_result = _mock_subprocess_ok([])
 
-        with patch("collectors.reddit.subprocess.run", return_value=mock_result):
+        with patch("collectors.shared.subprocess.run", return_value=mock_result):
             from collectors.reddit import RedditCollector
             c = RedditCollector({"subreddits": ["python"], "limit": 10})
             assert c.collect() == 0
@@ -69,7 +70,7 @@ class TestHackerNewsCollector:
         items = [{"url": "https://news.com/1", "title": "HN Post", "text": "Desc", "by": "user"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.hackernews.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.hackernews import HackerNewsCollector
             c = HackerNewsCollector({"limit": 10})
             assert c.collect() == 1
@@ -82,7 +83,7 @@ class TestTwitterCollector:
         items = [{"url": "https://x.com/1", "text": "Tweet text", "username": "user"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.twitter.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.twitter import TwitterCollector
             c = TwitterCollector({"keywords": ["AI"], "accounts": [], "limit": 10})
             assert c.collect() == 1
@@ -93,7 +94,7 @@ class TestTwitterCollector:
         items = [{"url": "https://x.com/2", "text": "Timeline tweet", "username": "user"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.twitter.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.twitter import TwitterCollector
             c = TwitterCollector({"keywords": [], "accounts": [], "limit": 10})
             assert c.collect() == 1
@@ -106,7 +107,7 @@ class TestBilibiliCollector:
         items = [{"url": "https://bilibili.com/video/1", "title": "Video", "description": "Desc"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.bilibili.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.bilibili import BilibiliCollector
             c = BilibiliCollector({"keywords": ["AI"], "limit": 10})
             assert c.collect() == 1
@@ -117,7 +118,7 @@ class TestBilibiliCollector:
         items = [{"url": "https://bilibili.com/video/2", "title": "Hot Video"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.bilibili.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.bilibili import BilibiliCollector
             c = BilibiliCollector({"keywords": [], "limit": 10})
             assert c.collect() == 1
@@ -130,11 +131,138 @@ class TestZhihuCollector:
         items = [{"url": "https://zhihu.com/q/1", "title": "Question", "content": "Detail"}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.zhihu.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.zhihu import ZhihuCollector
             c = ZhihuCollector({"keywords": ["AI"], "limit": 10})
             assert c.collect() == 1
         _teardown()
+
+    def test_collect_rss_fallback_when_opencli_and_json_fail(self, tmp_path):
+        _setup_config(tmp_path)
+        failed = MagicMock()
+        failed.returncode = 1
+        failed.stdout = ""
+        failed.stderr = "command not found: opencli"
+        feed = MagicMock()
+        feed.entries = [
+            {"link": "https://reddit.com/r/gamedev/1", "title": "Indie dev post", "summary": "AI tool", "author": "dev"}
+        ]
+
+        with patch("collectors.shared.subprocess.run", return_value=failed), \
+             patch("collectors.reddit.httpx.get", side_effect=Exception("403 Blocked")), \
+             patch("collectors.reddit.feedparser.parse", return_value=feed), \
+             patch("collectors.reddit.insert_item", return_value=True) as mock_insert:
+            from collectors.reddit import RedditCollector
+            c = RedditCollector({"subreddits": ["gamedev"], "limit": 10})
+            assert c.collect() == 1
+            assert c.last_errors == []
+            mock_insert.assert_called_once()
+        _teardown()
+
+
+class TestLinuxDoCollector:
+    def test_collect_latest(self, tmp_path):
+        _setup_config(tmp_path)
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json.return_value = {
+            "topic_list": {
+                "topics": [
+                    {
+                        "id": 123,
+                        "slug": "ai-agent",
+                        "title": "AI Agent 工具",
+                        "excerpt": "讨论 agent 工具链",
+                        "created_at": "2026-06-05T08:00:00.000Z",
+                        "last_poster_username": "user",
+                    }
+                ]
+            }
+        }
+
+        with patch("collectors.linuxdo.httpx.get", return_value=mock_resp), \
+             patch("collectors.linuxdo.insert_item", return_value=True) as mock_insert:
+            from collectors.linuxdo import LinuxDoCollector
+            c = LinuxDoCollector({"keywords": [], "categories": [], "limit": 10})
+            assert c.collect() == 1
+            mock_insert.assert_called_once()
+            assert mock_insert.call_args.kwargs["source"] == "linuxdo"
+        _teardown()
+
+    def test_collect_rss_fallback_when_json_blocked(self, tmp_path):
+        _setup_config(tmp_path)
+        blocked = MagicMock()
+        blocked.raise_for_status.side_effect = Exception("403 Forbidden")
+        feed = MagicMock()
+        feed.entries = [
+            {"link": "https://linux.do/t/ai/1", "title": "AI agent 工具", "summary": "agent workflow", "author": "user"}
+        ]
+
+        with patch("collectors.linuxdo.httpx.get", return_value=blocked), \
+             patch("collectors.linuxdo.feedparser.parse", return_value=feed), \
+             patch("collectors.linuxdo.insert_item", return_value=True) as mock_insert:
+            from collectors.linuxdo import LinuxDoCollector
+            c = LinuxDoCollector({"keywords": ["AI"], "categories": [], "limit": 10})
+            assert c.collect() == 1
+            assert c.last_errors == []
+            mock_insert.assert_called_once()
+        _teardown()
+
+    def test_registry_loads_linuxdo(self):
+        from collectors.registry import available_collectors
+
+        assert "linuxdo" in available_collectors()
+
+    def test_registry_loads_configured_plugin(self, tmp_path):
+        plugin_path = tmp_path / "plugin_collector.py"
+        plugin_path.write_text(
+            "class DemoCollector:\n"
+            "    def __init__(self, config):\n"
+            "        self.config = config\n"
+            "    def collect(self):\n"
+            "        return 3\n",
+            encoding="utf-8",
+        )
+        sys.path.insert(0, str(tmp_path))
+        try:
+            from collectors.registry import available_collectors, run_collector
+
+            configs = {
+                "demo": {
+                    "enabled": True,
+                    "module": "plugin_collector",
+                    "class": "DemoCollector",
+                    "display_name": "Demo",
+                }
+            }
+            assert "demo" in available_collectors(configs)
+            result = run_collector("demo", configs["demo"], configs)
+            assert result.new_count == 3
+            assert result.errors == []
+        finally:
+            sys.path.remove(str(tmp_path))
+
+    def test_registry_collects_last_errors(self, tmp_path):
+        plugin_path = tmp_path / "error_collector.py"
+        plugin_path.write_text(
+            "class ErrorCollector:\n"
+            "    def __init__(self, config):\n"
+            "        self.last_errors = []\n"
+            "    def collect(self):\n"
+            "        self.last_errors.append('blocked')\n"
+            "        return 0\n",
+            encoding="utf-8",
+        )
+        sys.path.insert(0, str(tmp_path))
+        try:
+            from collectors.registry import run_collector
+
+            configs = {"demo_error": {"module": "error_collector", "class": "ErrorCollector"}}
+            result = run_collector("demo_error", configs["demo_error"], configs)
+            assert result.new_count == 0
+            assert result.errors == ["blocked"]
+        finally:
+            sys.path.remove(str(tmp_path))
 
 
 class TestWeiboCollector:
@@ -143,7 +271,7 @@ class TestWeiboCollector:
         items = [{"url": "https://weibo.com/1", "text": "微博内容", "user": {"screen_name": "user"}}]
         mock_result = _mock_subprocess_ok(items)
 
-        with patch("collectors.weibo.subprocess.run", return_value=mock_result), _mock_insert():
+        with patch("collectors.shared.subprocess.run", return_value=mock_result), _mock_insert():
             from collectors.weibo import WeiboCollector
             c = WeiboCollector({"keywords": ["AI"], "limit": 10})
             assert c.collect() == 1

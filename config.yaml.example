@@ -3,9 +3,9 @@
 
 # LLM Configuration (for analysis and summarization)
 llm:
-  base_url: "http://127.0.0.1:8082/v1"  # Your API proxy (e.g. new-api)
-  api_key: "sk-your-key"
-  model: "deepseek-v4-flash"                  # Default model for analysis
+  base_url: "https://api.deepseek.com"  # OpenAI-compatible endpoint
+  api_key: "${DEEPSEEK_API_KEY}"        # Or put your local key in config.yaml only
+  model: "deepseek-v4-flash"            # Default model for analysis
   max_tokens: 4096
   timeout_seconds: 60
 
@@ -20,10 +20,12 @@ collectors:
   reddit:
     enabled: true
     subreddits:
-      - "MachineLearning"
-      - "artificial"
+      - "indiegames"
+      - "indiegaming"
+      - "gamedev"
       - "LocalLLaMA"
-      - "technology"
+      - "ArtificialInteligence"
+      - "MachineLearning"
     limit: 50
     # Uses opencli under the hood
 
@@ -33,9 +35,13 @@ collectors:
     # Uses opencli
 
   twitter:
-    enabled: false
+    enabled: true
     accounts: []       # Twitter accounts to follow
-    keywords: []       # Keywords to search
+    keywords:          # Keywords to search
+      - "indie game"
+      - "gamedev"
+      - "AI agent"
+      - "LLM app"
     limit: 30
     # Uses opencli
 
@@ -46,10 +52,36 @@ collectors:
     # Uses opencli
 
   zhihu:
-    enabled: false
-    keywords: []
+    enabled: true
+    keywords:
+      - "独立游戏"
+      - "游戏开发"
+      - "AI 产品"
+      - "智能体"
+      - "大语言模型应用"
     limit: 30
     # Uses opencli
+
+  linuxdo:
+    enabled: true
+    base_url: "https://linux.do"
+    keywords:
+      - "AI"
+      - "agent"
+      - "独立游戏"
+      - "游戏开发"
+    categories: []
+    limit: 50
+    timeout_seconds: 20
+
+  # Example external plugin collector. The class must accept config in __init__
+  # and expose collect() -> int.
+  # my_source:
+  #   enabled: false
+  #   module: "my_package.my_collector"
+  #   class: "MyCollector"
+  #   display_name: "My Source"
+  #   limit: 30
 
   weibo:
     enabled: false
@@ -94,14 +126,19 @@ processor:
   batch_size: 10
   # Categories to classify into
   categories:
-    - "AI / 机器学习"
-    - "编程 / 开发"
-    - "安全"
-    - "游戏"
-    - "硬件"
-    - "科技新闻"
-    - "产品"
-    - "其他"
+    - "Indie Game / 独立游戏"
+    - "Game Dev / 游戏开发"
+    - "AI Product / AI 产品"
+    - "AI Engineering / AI 工程"
+    - "Agents / 智能体"
+    - "Tools / 工具链"
+    - "Business / 商业化"
+    - "Other / 其他"
+  preferences:
+    - "独立游戏"
+    - "游戏开发"
+    - "AI"
+    - "agent"
 
 # Distributors - where to push reports
 distributors:

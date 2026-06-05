@@ -7,12 +7,14 @@ from unittest.mock import patch
 import lib.config as cfg_mod
 from lib.db import (
     get_available_dates,
+    get_latest_collector_runs,
     get_items_for_report,
     get_report,
     get_unanalyzed,
     init_db,
     insert_item,
     save_report,
+    save_collector_run,
     update_analysis,
     url_hash,
 )
@@ -139,6 +141,22 @@ class TestReports:
             save_report("2026-01-01", "daily", "# Report content")
             content = get_report("2026-01-01", "daily")
             assert content == "# Report content"
+        finally:
+            _teardown_db()
+
+
+class TestCollectorRuns:
+    def test_save_and_get_latest_runs(self, tmp_path):
+        _setup_db(tmp_path)
+        try:
+            init_db()
+            save_collector_run("reddit", "error", 0, 0, ["blocked"], 10.0, 12.0)
+            save_collector_run("reddit", "ok", 3, 3, [], 20.0, 21.5)
+            runs = get_latest_collector_runs()
+            assert runs["reddit"]["status"] == "ok"
+            assert runs["reddit"]["new_count"] == 3
+            assert runs["reddit"]["errors"] == []
+            assert runs["reddit"]["elapsed"] == 1.5
         finally:
             _teardown_db()
 

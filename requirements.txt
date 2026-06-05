@@ -1,5 +1,3 @@
-"""Requirements for InfoPipeline."""
-
 httpx>=0.25.0
 PyYAML>=6.0
 feedparser>=6.0.0
