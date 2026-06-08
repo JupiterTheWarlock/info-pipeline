@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 from lib.config import get
 from lib.db import (
+    count_items,
     get_available_dates,
     get_connection,
     get_item_facets,
@@ -191,8 +192,10 @@ class PipelineHandler(SimpleHTTPRequestHandler):
         date_str = _first(params, "date")
         source = _first(params, "source")
         category = _first(params, "category")
+        search_query = _first(params, "q")
         min_score_raw = _first(params, "min_score")
         limit_raw = _first(params, "limit")
+        offset_raw = _first(params, "offset")
 
         if date_str:
             try:
@@ -201,18 +204,39 @@ class PipelineHandler(SimpleHTTPRequestHandler):
                 self._json_response({"error": "invalid date format, use YYYY-MM-DD"}, 400)
                 return
 
-        min_score = float(min_score_raw) if min_score_raw else None
-        limit = min(max(int(limit_raw or 200), 1), 500)
+        try:
+            min_score = float(min_score_raw) if min_score_raw else None
+            limit = min(max(int(limit_raw or 50), 1), 100)
+            offset = max(int(offset_raw or 0), 0)
+        except ValueError:
+            self._json_response({"error": "invalid numeric filter"}, 400)
+            return
         items = query_items(
             date_str=date_str,
             source=source,
             category=category,
             min_score=min_score,
+            query=search_query,
             limit=limit,
+            offset=offset,
+        )
+        total = count_items(
+            date_str=date_str,
+            source=source,
+            category=category,
+            min_score=min_score,
+            query=search_query,
         )
         self._json_response({
             "items": [_dashboard_item(item) for item in items],
             "facets": get_item_facets(date_str),
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "returned": len(items),
+                "total": total,
+                "has_more": offset + len(items) < total,
+            },
         })
 
     def _api_collectors(self):

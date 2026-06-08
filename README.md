@@ -84,10 +84,11 @@ info-pipeline/
 │   ├── discord.py
 │   ├── feishu.py
 │   └── telegram.py
-├── web/                  # Frontend
-│   ├── index.html
-│   ├── app.js
-│   └── style.css
+├── web/                  # Frontend + API server
+│   ├── index.html        # Dashboard shell
+│   ├── app.js            # Browser interactions
+│   ├── style.css         # Responsive dark tool UI
+│   └── server.py         # Static files and JSON API
 ├── lib/                  # Shared utilities
 │   ├── __init__.py
 │   ├── db.py             # SQLite operations

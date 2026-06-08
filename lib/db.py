@@ -216,9 +216,55 @@ def query_items(
     source: str | None = None,
     category: str | None = None,
     min_score: float | None = None,
+    query: str | None = None,
     limit: int = 200,
+    offset: int = 0,
 ) -> list[dict]:
     """Query collected items for the dashboard."""
+    where, params = _item_query_filters(date_str, source, category, min_score, query)
+
+    sql = "SELECT * FROM items"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY preference_score DESC, score DESC, collected_at DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+
+    conn = get_connection()
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    items = []
+    for row in rows:
+        item = dict(row)
+        item["tags"] = json.loads(item.get("tags_json") or "[]")
+        items.append(item)
+    return items
+
+
+def count_items(
+    date_str: str | None = None,
+    source: str | None = None,
+    category: str | None = None,
+    min_score: float | None = None,
+    query: str | None = None,
+) -> int:
+    """Count collected items matching dashboard filters."""
+    where, params = _item_query_filters(date_str, source, category, min_score, query)
+    sql = "SELECT COUNT(*) AS cnt FROM items"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    conn = get_connection()
+    row = conn.execute(sql, params).fetchone()
+    conn.close()
+    return int(row["cnt"])
+
+
+def _item_query_filters(
+    date_str: str | None,
+    source: str | None,
+    category: str | None,
+    min_score: float | None,
+    query: str | None,
+) -> tuple[list[str], list[Any]]:
     where = []
     params: list[Any] = []
 
@@ -237,22 +283,17 @@ def query_items(
     if min_score is not None:
         where.append("score >= ?")
         params.append(min_score)
-
-    sql = "SELECT * FROM items"
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY preference_score DESC, score DESC, collected_at DESC LIMIT ?"
-    params.append(limit)
-
-    conn = get_connection()
-    rows = conn.execute(sql, params).fetchall()
-    conn.close()
-    items = []
-    for row in rows:
-        item = dict(row)
-        item["tags"] = json.loads(item.get("tags_json") or "[]")
-        items.append(item)
-    return items
+    if query:
+        pattern = f"%{query.strip()}%"
+        where.append(
+            """(
+                title LIKE ? OR url LIKE ? OR author LIKE ? OR source_detail LIKE ?
+                OR content LIKE ? OR summary LIKE ? OR why_relevant LIKE ?
+                OR risk LIKE ? OR tags_json LIKE ?
+            )"""
+        )
+        params.extend([pattern] * 9)
+    return where, params
 
 
 def get_item_facets(date_str: str | None = None) -> dict[str, list[str]]:

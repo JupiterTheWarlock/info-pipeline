@@ -133,6 +133,74 @@ class TestWebAPI:
         finally:
             _teardown()
 
+    def test_api_items_searches_title_summary_tags_and_returns_pagination(self, tmp_path):
+        _setup(tmp_path)
+        try:
+            insert_item("https://example.com/agent", "twitter", title="Agent browser toolkit", content="browser automation")
+            agent = get_unanalyzed()[0]
+            update_analysis(
+                agent["id"],
+                "Agents / 智能体",
+                8.0,
+                "Browser automation for AI agents",
+                preference_score=9.0,
+                why_relevant="Useful for agent workflows",
+                tags=["agent", "browser"],
+            )
+            insert_item("https://example.com/game", "reddit", title="Steam launch notes", content="wishlist tactics")
+            game = [item for item in get_unanalyzed() if item["url"] == "https://example.com/game"][0]
+            update_analysis(
+                game["id"],
+                "Indie Game / 独立游戏",
+                7.0,
+                "Indie launch checklist",
+                preference_score=8.0,
+                tags=["steam"],
+            )
+            port = 13466
+            server = _start_server(port)
+            try:
+                resp = httpx.get(
+                    f"http://127.0.0.1:{port}/api/items?q=browser&limit=1&offset=0",
+                    timeout=5,
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["pagination"] == {
+                    "limit": 1,
+                    "offset": 0,
+                    "returned": 1,
+                    "total": 1,
+                    "has_more": False,
+                }
+                assert [item["title"] for item in data["items"]] == ["Agent browser toolkit"]
+            finally:
+                server.shutdown()
+        finally:
+            _teardown()
+
+    def test_api_items_paginates_matching_results(self, tmp_path):
+        _setup(tmp_path)
+        try:
+            for idx in range(3):
+                insert_item(f"https://example.com/{idx}", "reddit", title=f"AI item {idx}")
+                item = get_unanalyzed()[0]
+                update_analysis(item["id"], "AI Product / AI 产品", 5 + idx, f"AI summary {idx}")
+            port = 13467
+            server = _start_server(port)
+            try:
+                resp = httpx.get(f"http://127.0.0.1:{port}/api/items?q=AI&limit=2&offset=1", timeout=5)
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["pagination"]["total"] == 3
+                assert data["pagination"]["returned"] == 2
+                assert data["pagination"]["has_more"] is False
+                assert len(data["items"]) == 2
+            finally:
+                server.shutdown()
+        finally:
+            _teardown()
+
     def test_api_run_collect(self, tmp_path):
         _setup(tmp_path)
         try:
