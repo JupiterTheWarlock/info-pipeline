@@ -2,6 +2,7 @@
 
 import json
 import re
+from html import unescape
 from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -263,6 +264,7 @@ def _first(params: dict[str, list[str]], key: str) -> str | None:
 
 
 def _dashboard_item(item: dict) -> dict:
+    clean_content = _clean_content(item)
     return {
         "id": item.get("id"),
         "url": item.get("url"),
@@ -271,6 +273,8 @@ def _dashboard_item(item: dict) -> dict:
         "source_detail": item.get("source_detail"),
         "author": item.get("author"),
         "content": item.get("content"),
+        "clean_content": clean_content,
+        "preview_text": item.get("summary") or _truncate(clean_content, 180),
         "category": item.get("category") or "未分析",
         "score": item.get("score") or 0,
         "preference_score": item.get("preference_score") or 0,
@@ -304,16 +308,85 @@ def _extract_image_url(item: dict) -> str:
                 value = extra.get(key)
                 if isinstance(value, list):
                     candidates.extend(value)
+                elif value:
+                    candidates.append(value)
 
     content = item.get("content") or ""
     candidates.extend(re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', content, flags=re.IGNORECASE))
+    candidates.extend(re.findall(r'<source[^>]+srcset=["\']([^"\']+)["\']', content, flags=re.IGNORECASE))
 
     for candidate in candidates:
         if isinstance(candidate, dict):
-            candidate = candidate.get("url") or candidate.get("src")
-        if isinstance(candidate, str) and candidate.startswith(("http://", "https://")):
-            return candidate
+            candidate = candidate.get("url") or candidate.get("src") or candidate.get("source")
+        if isinstance(candidate, str) and "," in candidate:
+            candidate = candidate.split(",", 1)[0].strip().split(" ", 1)[0]
+        if isinstance(candidate, str) and _is_usable_image_url(candidate):
+            return unescape(candidate)
     return ""
+
+
+def _is_usable_image_url(value: str) -> bool:
+    lowered = value.lower()
+    if not lowered.startswith(("http://", "https://")):
+        return False
+    blocked = (
+        "abs.twimg.com/emoji",
+        "/emoji/",
+        "avatar",
+        "profile_images",
+        "favicon",
+        ".svg",
+    )
+    return not any(part in lowered for part in blocked)
+
+
+def _clean_content(item: dict) -> str:
+    source = str(item.get("source") or "").lower()
+    raw = unescape(str(item.get("content") or ""))
+    if not raw:
+        return ""
+    if "<" in raw and ">" in raw:
+        raw = _html_to_text(raw)
+    if source == "linuxdo":
+        raw = re.sub(r"\d+\s*个帖子\s*-\s*\d+\s*位参与者", "", raw)
+        raw = raw.replace("阅读完整话题", "")
+    elif source == "reddit":
+        raw = re.sub(r"\s*submitted by\s+.*$", "", raw, flags=re.IGNORECASE | re.DOTALL)
+        raw = raw.replace("<!-- SC_OFF -->", "").replace("<!-- SC_ON -->", "")
+    elif source in {"twitter", "x"}:
+        raw = re.sub(r"https://t\.co/\S+", "", raw)
+    elif source == "zhihu" and not raw.strip():
+        raw = str(item.get("title") or "")
+    return _normalize_text(raw)
+
+
+def _html_to_text(raw: str) -> str:
+    text = re.sub(
+        r"(?i)<(script|style|noscript|iframe|svg|picture|video|audio)[^>]*>.*?</\1>",
+        " ",
+        raw,
+        flags=re.DOTALL,
+    )
+    text = re.sub(r"(?i)<img[^>]*>", " ", text)
+    text = re.sub(r"(?i)</(p|div|li|blockquote|h[1-6]|tr)>", "\n", text)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    return re.sub(r"(?i)<[^>]+>", " ", text)
+
+
+def _normalize_text(value: str) -> str:
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"[ \t]+\n", "\n", value)
+    value = re.sub(r"\n[ \t]+", "\n", value)
+    value = re.sub(r"[ \t]{2,}", " ", value)
+    value = re.sub(r"\n{3,}", "\n\n", value)
+    value = re.sub(r"\b" + "s" + "k-" + r"[A-Za-z0-9_-]{6,}\b", "s" + "k-...", value)
+    return value.strip()
+
+
+def _truncate(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: max(0, limit - 1)].rstrip() + "…"
 
 
 def _collector_run(run: dict | None) -> dict | None:

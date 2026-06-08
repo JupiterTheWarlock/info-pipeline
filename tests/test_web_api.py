@@ -125,6 +125,8 @@ class TestWebAPI:
                 data = resp.json()
                 assert data["items"][0]["preference_score"] == 8.0
                 assert data["items"][0]["image_url"] == "https://example.com/thumb.jpg"
+                assert data["items"][0]["clean_content"] == "Hello"
+                assert data["items"][0]["preview_text"] == "Summary"
                 assert "reddit" in data["facets"]["sources"]
             finally:
                 server.shutdown()

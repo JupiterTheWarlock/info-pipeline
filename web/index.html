@@ -933,7 +933,7 @@ function renderDetail() {
   els.detailHeader.textContent = item.source || "Item";
   els.detailSub.textContent = item.category || "未分析";
   els.openBtn.disabled = !item.url;
-  const cleanedContent = cleanContentText(item.content || "");
+  const cleanedContent = item.clean_content || cleanContentText(item.content || "");
   const contentHtml = cleanedContent
     ? cleanedContent.split(/\n{2,}/).slice(0, 6).map((part) => `<p>${escapeHtml(part)}</p>`).join("")
     : "<p>暂无正文摘要。可以打开原文查看完整上下文。</p>";
@@ -955,7 +955,7 @@ function renderDetail() {
 }
 
 function contentPreview(item) {
-  return item.summary || cleanContentText(item.content || "").slice(0, 140);
+  return item.preview_text || item.summary || cleanContentText(item.content || "").slice(0, 140);
 }
 
 function cleanContentText(value) {
