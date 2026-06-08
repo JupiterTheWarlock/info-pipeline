@@ -27,7 +27,7 @@ class TwitterCollector:
 
     def _timeline(self) -> int:
         items, err = run_opencli(
-            "opencli", "twitter", "timeline", "--limit", str(self.limit),
+            "opencli", "twitter", "timeline", "--limit", str(self.limit), "-f", "yaml",
         )
         if err:
             msg = f"timeline: {err[:100]}"
@@ -39,7 +39,7 @@ class TwitterCollector:
     def _search(self, query: str) -> int:
         items, err = run_opencli(
             "opencli", "twitter", "search",
-            "--query", query, "--limit", str(self.limit),
+            query, "--limit", str(self.limit), "-f", "yaml",
         )
         if err:
             msg = f"search '{query}': {err[:100]}"

@@ -235,6 +235,51 @@ Tested:
 
 ## Next Work
 
-- Install and configure `opencli`, then rerun X / Twitter and Zhihu collectors.
 - Consider authenticated/API collection for Reddit and linux.do only if RSS coverage is not enough.
-- Add browser-level UI verification once Playwright or Chrome is available.
+
+## 2026-06-08 End-to-End Update
+
+OpenCLI was available on the machine as `opencli.cmd`, but Python subprocess did not resolve the command until `run_opencli()` was updated to use `shutil.which()`. OpenCLI output also required explicit UTF-8 decoding on Windows to avoid GBK decode failures.
+
+Collector command fixes:
+
+```text
+twitter search: opencli twitter search <query> --limit N -f yaml
+zhihu search: opencli zhihu search <query> --limit N -f yaml
+reddit hot: opencli reddit hot --subreddit <name> --limit N -f yaml
+```
+
+Real collection:
+
+```text
+twitter: 120 new items
+reddit: 150 new items
+linuxdo: 26 new items
+zhihu: 72 new items
+total collected sources: 368 items
+all analyzed: 368 / 368
+```
+
+Report:
+
+```text
+output/2026/06/08.md
+129 scored report items
+8 normalized categories
+```
+
+Web/API verification:
+
+```text
+GET /api/collectors:
+twitter ok +120
+reddit ok +150
+linuxdo ok +26
+zhihu ok +72
+
+Playwright desktop/mobile:
+no horizontal overflow
+Collect/Analyze/Report/Clear filters visible
+source states visible
+latest screenshot state: 200 displayed items, twitter +120, reddit +150, linux.do +26, zhihu +72
+```

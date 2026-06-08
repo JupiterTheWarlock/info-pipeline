@@ -23,7 +23,7 @@ class ZhihuCollector:
     def _search(self, keyword: str) -> int:
         items, err = run_opencli(
             "opencli", "zhihu", "search",
-            "--keyword", keyword, "--limit", str(self.limit),
+            keyword, "--limit", str(self.limit), "-f", "yaml",
         )
         if err:
             if "command not found" in err.lower() or "not found" not in err.lower():

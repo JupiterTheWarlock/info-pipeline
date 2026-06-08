@@ -25,8 +25,11 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; background: var(--bg-deep); color: var(--text-primary); }
   body {
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: Inter, "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
     letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   button, input { font: inherit; }
   button { cursor: pointer; }
@@ -62,9 +65,9 @@
   .brand { min-width: 0; }
   .brandTitle {
     color: var(--text-bright);
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.2;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.25;
   }
   .brandSub {
     margin-top: 3px;
@@ -76,22 +79,27 @@
   }
 
   .iconBtn, .textBtn {
-    height: 34px;
+    height: 36px;
     border: 1px solid var(--border-light);
     border-radius: 6px;
-    background: rgba(20, 17, 14, 0.9);
+    background: rgba(19, 16, 13, 0.74);
     color: var(--text-primary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
   }
-  .iconBtn { width: 34px; flex: 0 0 34px; }
-  .textBtn { padding: 0 10px; }
+  .iconBtn { width: 36px; flex: 0 0 36px; }
+  .textBtn { padding: 0 13px; }
   .iconBtn:hover, .textBtn:hover,
   .iconBtn:focus-visible, .textBtn:focus-visible {
     border-color: var(--accent);
     color: var(--text-bright);
+    background: rgba(23, 19, 16, 0.9);
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-glow);
   }
@@ -120,6 +128,8 @@
     grid-template-columns: 18px minmax(0, 1fr) auto;
     align-items: center;
     gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
     text-align: left;
   }
   .treeRow:hover, .sourceRow:hover,
@@ -163,8 +173,9 @@
   .toolbarTitle {
     min-width: 0;
     color: var(--text-bright);
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -177,7 +188,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .actions { display: flex; align-items: center; gap: 7px; min-width: 0; }
 
   .filterStrip {
     padding: 10px 14px;
@@ -190,19 +201,21 @@
   .filterTrigger {
     width: 100%;
     min-width: 0;
-    height: 44px;
-    padding: 6px 9px;
+    height: 46px;
+    padding: 7px 11px;
     border: 1px solid var(--border-light);
     border-radius: 8px;
-    background: rgba(18, 15, 12, 0.94);
+    background: rgba(18, 15, 12, 0.78);
     color: var(--text-primary);
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     text-align: left;
+    transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
   }
   .filterTrigger:hover, .filterTrigger:focus-visible {
     border-color: var(--accent);
+    background: rgba(22, 18, 15, 0.94);
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-glow);
   }
@@ -217,6 +230,9 @@
     min-width: 0;
     margin-top: 2px;
     color: var(--text-bright);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -232,8 +248,9 @@
     border: 1px solid var(--border-light);
     border-radius: 8px;
     background: #120f0c;
-    padding: 4px;
+    padding: 5px;
     display: none;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
   }
   .filterList.open { display: block; }
   .filterOption {
@@ -241,9 +258,12 @@
     min-width: 0;
     border: 0;
     border-radius: 5px;
-    padding: 8px;
+    padding: 8px 9px;
     background: transparent;
     color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -273,7 +293,9 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     text-align: left;
+    overflow: hidden;
   }
+  .itemRow.hasCover { grid-template-columns: 74px minmax(0, 1fr) auto; }
   .itemRow:hover, .itemRow:focus-visible {
     border-color: var(--border-light);
     outline: none;
@@ -282,11 +304,29 @@
     border-color: rgba(218, 119, 86, 0.48);
     box-shadow: inset 2px 0 0 var(--accent);
   }
+  .minBlock { min-width: 0; overflow: hidden; }
+  .itemCover {
+    width: 74px;
+    height: 74px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(10, 9, 8, 0.72);
+    overflow: hidden;
+  }
+  .itemCover img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
   .itemTitle {
     min-width: 0;
+    max-width: 100%;
     color: var(--text-bright);
-    font-weight: 700;
-    line-height: 1.35;
+    font-size: 15px;
+    font-weight: 620;
+    line-height: 1.42;
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -313,8 +353,18 @@
     flex-wrap: wrap;
   }
   .scoreStack {
-    min-width: 74px;
+    min-width: 82px;
     text-align: right;
+    display: grid;
+    gap: 4px;
+    align-content: start;
+  }
+  .scorePill {
+    display: inline-flex;
+    justify-content: flex-end;
+    gap: 4px;
+    color: var(--text-secondary);
+    white-space: nowrap;
   }
   .scoreStrong { color: var(--accent-bright); }
 
@@ -326,8 +376,9 @@
   .detailTitle {
     margin: 0;
     color: var(--text-bright);
-    font-size: 18px;
-    line-height: 1.35;
+    font-size: 17px;
+    font-weight: 650;
+    line-height: 1.42;
   }
   .detailUrl {
     display: block;
@@ -354,7 +405,7 @@
     font: 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
     text-transform: uppercase;
   }
-  .metricValue { margin-top: 4px; color: var(--text-bright); font-weight: 700; }
+  .metricValue { margin-top: 4px; color: var(--text-bright); font-weight: 620; }
   .detailSection {
     margin-top: 16px;
     border-top: 1px solid var(--border);
@@ -363,7 +414,8 @@
   .detailSection h3 {
     margin: 0 0 8px;
     color: var(--text-bright);
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 650;
   }
   .detailSection p {
     margin: 0;
@@ -372,6 +424,7 @@
     line-height: 1.6;
     overflow-wrap: anywhere;
   }
+  .detailSection p + p { margin-top: 8px; }
   .tags {
     display: flex;
     flex-wrap: wrap;
@@ -804,19 +857,22 @@ function renderFilter(id, label, currentLabel, options, onSelect) {
     item.setAttribute("role", "option");
     item.setAttribute("aria-selected", option.value === filterValue(id) ? "true" : "false");
     item.textContent = option.label;
-    item.addEventListener("click", () => {
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
       closeFilter();
       onSelect(option.value);
     });
     list.appendChild(item);
   });
-  trigger.addEventListener("click", () => {
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
     state.openFilter = state.openFilter === id ? null : id;
     renderFilters();
   });
   trigger.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      event.stopPropagation();
       state.openFilter = state.openFilter === id ? null : id;
       renderFilters();
     }
@@ -833,14 +889,18 @@ function renderItems() {
   }
   els.items.innerHTML = "";
   state.items.forEach((item) => {
+    const coverUrl = extractCoverUrl(item);
+    const previewText = contentPreview(item);
     const row = document.createElement("button");
     row.type = "button";
     row.className = "itemRow";
+    row.classList.toggle("hasCover", Boolean(coverUrl));
     row.classList.toggle("selected", state.selectedItem?.id === item.id);
     row.innerHTML = `
+      ${coverUrl ? `<span class="itemCover"><img src="${escapeAttr(coverUrl)}" alt="" loading="lazy" onerror="this.closest('.itemRow').classList.remove('hasCover'); this.closest('.itemCover').remove();"></span>` : ""}
       <span class="minBlock">
         <span class="itemTitle">${escapeHtml(item.title)}</span>
-        <span class="itemSummary">${escapeHtml(item.summary || item.content || "未分析")}</span>
+        <span class="itemSummary">${escapeHtml(previewText || "未分析")}</span>
         <span class="itemMeta">
           <span>${escapeHtml(item.source || "")}</span>
           <span>${escapeHtml(item.category || "未分析")}</span>
@@ -848,8 +908,8 @@ function renderItems() {
         </span>
       </span>
       <span class="scoreStack">
-        <span class="scoreStrong">P ${formatScore(item.preference_score)}</span><br>
-        <span>S ${formatScore(item.score)}</span>
+        <span class="scorePill" title="Preference score"><span>偏好</span><span class="scoreStrong">${formatScore(item.preference_score)}</span></span>
+        <span class="scorePill" title="Relevance score"><span>相关</span><span>${formatScore(item.score)}</span></span>
       </span>
     `;
     row.addEventListener("click", () => {
@@ -873,6 +933,10 @@ function renderDetail() {
   els.detailHeader.textContent = item.source || "Item";
   els.detailSub.textContent = item.category || "未分析";
   els.openBtn.disabled = !item.url;
+  const cleanedContent = cleanContentText(item.content || "");
+  const contentHtml = cleanedContent
+    ? cleanedContent.split(/\n{2,}/).slice(0, 6).map((part) => `<p>${escapeHtml(part)}</p>`).join("")
+    : "<p>暂无正文摘要。可以打开原文查看完整上下文。</p>";
   els.detailBody.innerHTML = `
     <h2 class="detailTitle">${escapeHtml(item.title)}</h2>
     <a class="detailUrl" href="${escapeAttr(item.url || "#")}" target="_blank" rel="noopener">${escapeHtml(item.url || "")}</a>
@@ -885,9 +949,45 @@ function renderDetail() {
     <div class="detailSection"><h3>Summary</h3><p>${escapeHtml(item.summary || "未分析")}</p></div>
     <div class="detailSection"><h3>Why Relevant</h3><p>${escapeHtml(item.why_relevant || "暂无")}</p></div>
     <div class="detailSection"><h3>Risk</h3><p>${escapeHtml(item.risk || "暂无")}</p></div>
-    <div class="detailSection"><h3>Content</h3><p>${escapeHtml(item.content || "暂无正文摘要")}</p></div>
+    <div class="detailSection"><h3>Content</h3>${contentHtml}</div>
     <div class="detailSection"><h3>Tags</h3><div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") || '<span class="tag">none</span>'}</div></div>
   `;
+}
+
+function contentPreview(item) {
+  return item.summary || cleanContentText(item.content || "").slice(0, 140);
+}
+
+function cleanContentText(value) {
+  const raw = String(value || "");
+  if (!raw) return "";
+  let text = raw;
+  if (/<[a-z][\s\S]*>/i.test(raw)) {
+    const doc = new DOMParser().parseFromString(raw, "text/html");
+    doc.querySelectorAll("script, style, noscript, iframe, svg, img, picture, video, audio, small, .lightbox-wrapper").forEach((node) => node.remove());
+    text = doc.body.textContent || "";
+  }
+  return text
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/阅读完整话题/g, "")
+    .replace(/\d+\s*个帖子\s*-\s*\d+\s*位参与者/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractCoverUrl(item) {
+  if (item.image_url) return item.image_url;
+  const raw = String(item.content || "");
+  if (!/<[a-z][\s\S]*>/i.test(raw)) return "";
+  const doc = new DOMParser().parseFromString(raw, "text/html");
+  const img = Array.from(doc.images).find((node) => {
+    const src = node.getAttribute("src") || "";
+    return src.startsWith("http://") || src.startsWith("https://");
+  });
+  return img?.getAttribute("src") || "";
 }
 
 function updateHeader() {

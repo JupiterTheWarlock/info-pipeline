@@ -100,7 +100,13 @@ class TestWebAPI:
     def test_api_items(self, tmp_path):
         _setup(tmp_path)
         try:
-            insert_item("https://example.com/1", "reddit", title="A")
+            insert_item(
+                "https://example.com/1",
+                "reddit",
+                title="A",
+                content='<p>Hello</p><img src="https://example.com/card.jpg">',
+                extra={"thumbnail": "https://example.com/thumb.jpg"},
+            )
             item = get_unanalyzed()[0]
             update_analysis(
                 item["id"],
@@ -118,6 +124,7 @@ class TestWebAPI:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["items"][0]["preference_score"] == 8.0
+                assert data["items"][0]["image_url"] == "https://example.com/thumb.jpg"
                 assert "reddit" in data["facets"]["sources"]
             finally:
                 server.shutdown()

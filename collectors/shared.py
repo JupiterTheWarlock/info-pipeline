@@ -1,6 +1,7 @@
 """Shared utilities for collectors."""
 
 import subprocess
+import shutil
 from typing import Any
 
 import yaml
@@ -62,8 +63,14 @@ def run_opencli(*args: str, timeout: int = 120) -> tuple[list[dict], str]:
     Returns empty list and error message if command failed.
     """
     try:
+        resolved = shutil.which(args[0]) or args[0]
         result = subprocess.run(
-            list(args), capture_output=True, text=True, timeout=timeout,
+            [resolved, *args[1:]],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
         )
         if result.returncode != 0:
             stderr = result.stderr.strip() if result.stderr else ""

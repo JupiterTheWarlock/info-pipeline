@@ -28,7 +28,7 @@ class RedditCollector:
         items, err = run_opencli(
             "opencli", "reddit", "hot",
             "--subreddit", subreddit,
-            "--limit", str(self.limit),
+            "--limit", str(self.limit), "-f", "yaml",
         )
         if err:
             if "command not found" in err:

@@ -1,6 +1,7 @@
 """Web UI server for browsing reports."""
 
 import json
+import re
 from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -277,9 +278,42 @@ def _dashboard_item(item: dict) -> dict:
         "why_relevant": item.get("why_relevant") or "",
         "risk": item.get("risk") or "",
         "tags": item.get("tags") or [],
+        "image_url": _extract_image_url(item),
         "collected_at": item.get("collected_at"),
         "published_at": item.get("published_at"),
     }
+
+
+def _extract_image_url(item: dict) -> str:
+    candidates: list[Any] = []
+    extra_raw = item.get("extra_json")
+    if extra_raw:
+        try:
+            extra = json.loads(extra_raw)
+        except (TypeError, ValueError):
+            extra = {}
+        if isinstance(extra, dict):
+            candidates.extend([
+                extra.get("image"),
+                extra.get("image_url"),
+                extra.get("thumbnail"),
+                extra.get("thumbnail_url"),
+                extra.get("preview"),
+            ])
+            for key in ("media", "images", "preview_images"):
+                value = extra.get(key)
+                if isinstance(value, list):
+                    candidates.extend(value)
+
+    content = item.get("content") or ""
+    candidates.extend(re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', content, flags=re.IGNORECASE))
+
+    for candidate in candidates:
+        if isinstance(candidate, dict):
+            candidate = candidate.get("url") or candidate.get("src")
+        if isinstance(candidate, str) and candidate.startswith(("http://", "https://")):
+            return candidate
+    return ""
 
 
 def _collector_run(run: dict | None) -> dict | None:
